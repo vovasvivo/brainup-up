@@ -6,29 +6,206 @@
     <title>BrainUp App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #0d0e15;
+            --card-bg: #161925;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-cyan: #06b6d4;
+            --text-gold: #f59e0b;
+        }
+
         body {
-            background-color: #1a1a1a;
+            background-color: var(--bg-color);
             color: #ffffff;
-            font-family: Arial, sans-serif;
-            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
+            box-sizing: border-box;
+            user-select: none;
         }
-        .balance {
-            font-size: 24px;
+
+        /* Шапка с балансом */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #1f1d36, #11101d);
+            padding: 12px 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
             margin-bottom: 20px;
-            color: #ffcc00;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
+
+        .brand {
+            font-weight: 900;
+            font-size: 18px;
+            background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .balance-badge {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: var(--text-gold);
+            font-size: 16px;
+        }
+
+        /* Навигация / Вкладки */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.05);
+            color: #9ca3af;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--accent-purple), #6d28d9);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.4);
+        }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Пополнение за Звёзды и Промокод */
+        .deposit-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 20px;
+        }
+
+        .promo-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .promo-input {
+            flex: 1;
+            background: #0d0e15;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .promo-btn {
+            background: var(--accent-cyan);
+            border: none;
+            color: black;
+            font-weight: bold;
+            padding: 0 16px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .stars-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .star-pack {
+            background: #1e2235;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .star-pack:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .star-amount { font-size: 18px; font-weight: bold; color: var(--accent-cyan); }
+        .coin-get { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+
+        /* Список 10 кейсов */
+        .cases-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .case-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .case-card:active { transform: scale(0.97); }
+
+        .case-icon {
+            font-size: 38px;
+            margin-bottom: 8px;
+        }
+
+        .case-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .case-price {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--text-gold);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Рулетка */
+        .roulette-modal {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--accent-purple);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
         .roulette-container {
             width: 100%;
-            height: 120px;
+            height: 110px;
             overflow: hidden;
-            border: 3px solid #ffcc00;
-            border-radius: 10px;
+            border: 2px solid var(--accent-purple);
+            border-radius: 12px;
             position: relative;
-            background: #2a2a2a;
-            margin-bottom: 20px;
+            background: #0d0e15;
+            margin: 15px 0;
         }
+
         .pointer {
             position: absolute;
             top: 0;
@@ -36,9 +213,11 @@
             transform: translateX(-50%);
             width: 4px;
             height: 100%;
-            background: red;
+            background: var(--accent-pink);
             z-index: 10;
+            box-shadow: 0 0 10px var(--accent-pink);
         }
+
         .track {
             display: flex;
             position: absolute;
@@ -46,110 +225,322 @@
             top: 10px;
             transition: transform 3s cubic-bezier(0.1, 1, 0.1, 1);
         }
-        .card {
-            width: 90px;
-            height: 100px;
-            margin: 0 5px;
-            background: #444;
-            border-radius: 8px;
+
+        .drop-card {
+            width: 85px;
+            height: 90px;
+            margin: 0 4px;
+            background: #1f2438;
+            border-radius: 10px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
-            box-sizing: border-box;
+            font-size: 12px;
             flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        .nothing { border: 2px solid #888; color: #bbb; }
-        .common { border: 2px solid #0088cc; color: #0088cc; }
-        .legendary { border: 2px solid #ff0055; color: #ff0055; }
-        button {
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            background: #0088cc;
-            color: white;
+
+        .spin-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
             border: none;
-            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 12px;
             cursor: pointer;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
         }
-        button:disabled {
-            background: #555;
+
+        .spin-btn:disabled { opacity: 0.5; }
+
+        /* Инвентарь */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
         }
+
+        .inv-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+            font-size: 11px;
+        }
+
+        .inv-icon { font-size: 26px; margin-bottom: 4px; }
     </style>
 </head>
 <body>
-    <h1>BrainUp App 🚀</h1>
-    <div class="balance">Баланс: <span id="bal">1000</span> 🪙</div>
 
-    <div class="roulette-container">
-        <div class="pointer"></div>
-        <div class="track" id="track"></div>
+    <!-- Шапка -->
+    <div class="header">
+        <div class="brand">BRAINUP 🚀</div>
+        <div class="balance-badge"><span id="bal">0</span> 🪙</div>
     </div>
 
-    <button id="spinBtn" onclick="spin()">Крутить (100 🪙)</button>
+    <!-- Вкладки -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('cases')">📦 Кейсы</button>
+        <button class="tab-btn" onclick="switchTab('deposit')">⭐ Звёзды</button>
+        <button class="tab-btn" onclick="switchTab('inventory')">🎒 Инвентарь</button>
+    </div>
+
+    <!-- ВКЛАДКА 1: КЕЙСЫ -->
+    <div id="cases-page" class="page active">
+        
+        <!-- Окно выбранного кейса / Рулетка -->
+        <div id="active-case-view" class="roulette-modal" style="display: none;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 id="current-case-name" style="margin:0;">Название Кейса</h3>
+                <button onclick="closeCaseView()" style="background:none; border:none; color:#888; font-size:18px;">✖</button>
+            </div>
+            
+            <div class="roulette-container">
+                <div class="pointer"></div>
+                <div class="track" id="track"></div>
+            </div>
+
+            <button class="spin-btn" id="spinBtn" onclick="spinCurrentCase()">Открыть кейс</button>
+        </div>
+
+        <!-- Сетка 10 кейсов -->
+        <div class="cases-grid" id="cases-list"></div>
+    </div>
+
+    <!-- ВКЛАДКА 2: ПОПОЛНЕНИЕ И ПРОМОКОДЫ -->
+    <div id="deposit-page" class="page">
+        <div class="deposit-card">
+            <h4 style="margin-top:0; margin-bottom:10px;">🔑 Активация промокода</h4>
+            <div class="promo-box">
+                <input type="text" id="promoInput" class="promo-input" placeholder="Введи промокод">
+                <button class="promo-btn" onclick="applyPromo()">Ввести</button>
+            </div>
+            <div id="promo-status" style="font-size:12px; color:var(--accent-cyan);"></div>
+        </div>
+
+        <div class="deposit-card">
+            <h4 style="margin-top:0; margin-bottom:6px;">⭐ Купить монеты за Telegram Stars</h4>
+            <p style="font-size:12px; color:#888; margin-top:0; margin-bottom:15px;">Курс: 1 Звезда = 2 Монеты</p>
+            
+            <div class="stars-grid">
+                <div class="star-pack" onclick="buyStars(25)">
+                    <div class="star-amount">⭐ 25 Stars</div>
+                    <div class="coin-get" id="pack-25">50 🪙</div>
+                </div>
+                <div class="star-pack" onclick="buyStars(50)">
+                    <div class="star-amount">⭐ 50 Stars</div>
+                    <div class="coin-get" id="pack-50">100 🪙</div>
+                </div>
+                <div class="star-pack" onclick="buyStars(100)">
+                    <div class="star-amount">⭐ 100 Stars</div>
+                    <div class="coin-get" id="pack-100">200 🪙</div>
+                </div>
+                <div class="star-pack" onclick="buyStars(250)">
+                    <div class="star-amount">⭐ 250 Stars</div>
+                    <div class="coin-get" id="pack-250">500 🪙</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 3: ИНВЕНТАРЬ -->
+    <div id="inventory-page" class="page">
+        <h4 style="margin-top:0; margin-bottom:15px;">Твои выбитые BrainRot'ы:</h4>
+        <div class="inventory-grid" id="inventory-list">
+            <div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пока пуст. Открывай кейсы!</div>
+        </div>
+    </div>
 
     <script>
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) tg.expand();
 
-        let balance = 1000;
-        const track = document.getElementById('track');
-        const spinBtn = document.getElementById('spinBtn');
+        let balance = 0;
+        let activePromoBonus = 1; // 1 = обычный, 1.05 = +5%
+        let inventory = [];
+        let selectedCaseIndex = null;
 
-        const items = [
-            { name: "Ничего", class: "nothing", chance: 50 },
-            { name: "Common", class: "common", chance: 40 },
-            { name: "Legendary", class: "legendary", chance: 10 }
+        // Конфигурация 10 кейсов
+        const cases = [
+            { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [3, 5, 7, 9, 12, 20, 600], item: "Skibidi Toilet" },
+            { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 5, 7, 9, 15, 30, 600], item: "Chad Jawline" },
+            { id: 3, name: "Rizzler Box", price: 25, icon: "😏", drops: [5, 10, 15, 25, 40, 600], item: "W Rizz" },
+            { id: 4, name: "Fanum Tax", price: 35, icon: "🍕", drops: [5, 10, 20, 35, 50, 600], item: "Gyatt Pizza" },
+            { id: 5, name: "Ohio Mystery", price: 50, icon: "💀", drops: [10, 20, 30, 50, 80, 600], item: "Ohio Boss" },
+            { id: 6, name: "Sigma Grind", price: 75, icon: "🗿", drops: [15, 30, 50, 75, 120, 600], item: "Gigachad Status" },
+            { id: 7, name: "Grimace Shake", price: 100, icon: "🥤", drops: [20, 40, 70, 100, 150, 600], item: "Sus Purple Shake" },
+            { id: 8, name: "Kai Cenat Vault", price: 150, icon: "🔥", drops: [30, 60, 100, 150, 250, 800], item: "AMP Setup" },
+            { id: 9, name: "Goofy Ahh Crate", price: 250, icon: "🤪", drops: [50, 100, 180, 250, 400, 1000], item: "Quandale Dingle" },
+            { id: 10, name: "Supreme BrainRot", price: 500, icon: "👑", drops: [100, 200, 350, 500, 800, 2500], item: "Golden Skibidi God" }
         ];
 
-        function getRandomItem() {
-            const rand = Math.random() * 100;
-            if (rand < 50) return items[0];
-            if (rand < 90) return items[1];
-            return items[2];
+        // Отрисовка списка кейсов
+        function renderCases() {
+            const list = document.getElementById('cases-list');
+            list.innerHTML = '';
+            cases.forEach((c, idx) => {
+                const card = document.createElement('div');
+                card.className = 'case-card';
+                card.onclick = () => openCaseView(idx);
+                card.innerHTML = `
+                    <div class="case-icon">${c.icon}</div>
+                    <div class="case-title">${c.name}</div>
+                    <div class="case-price">${c.price} 🪙</div>
+                `;
+                list.appendChild(card);
+            });
+        }
+        renderCases();
+
+        // Вкладки
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-page`).classList.add('active');
         }
 
-        function generateTrack() {
+        // Промокоды
+        function applyPromo() {
+            const code = document.getElementById('promoInput').value.trim().toUpperCase();
+            const status = document.getElementById('promo-status');
+
+            if (code === 'DEVADMIN') {
+                balance += 1000000;
+                document.getElementById('bal').innerText = balance.toLocaleString();
+                status.style.color = '#10b981';
+                status.innerText = "✅ Админ-код активирован: +1,000,000 монет!";
+            } else if (code === 'BRAINUP5') {
+                activePromoBonus = 1.05;
+                status.style.color = '#10b981';
+                status.innerText = "✅ Промокод на +5% к пополнению активирован!";
+                updatePacksDisplay();
+            } else {
+                status.style.color = '#ef4444';
+                status.innerText = "❌ Неверный промокод";
+            }
+            document.getElementById('promoInput').value = '';
+        }
+
+        function updatePacksDisplay() {
+            if (activePromoBonus > 1) {
+                document.getElementById('pack-25').innerText = `${Math.floor(50 * 1.05)} 🪙 (+5%)`;
+                document.getElementById('pack-50').innerText = `${Math.floor(100 * 1.05)} 🪙 (+5%)`;
+                document.getElementById('pack-100').innerText = `${Math.floor(200 * 1.05)} 🪙 (+5%)`;
+                document.getElementById('pack-250').innerText = `${Math.floor(500 * 1.05)} 🪙 (+5%)`;
+            }
+        }
+
+        // Оплата звёздами
+        function buyStars(stars) {
+            const baseCoins = stars * 2;
+            const finalCoins = Math.floor(baseCoins * activePromoBonus);
+
+            if (tg && tg.openInvoice) {
+                // Если есть встроенный счёт Stars
+                alert(`Инициирована покупка за ${stars} Stars -> ${finalCoins} монет.`);
+            } else {
+                // Симуляция успешного пополнения для теста
+                balance += finalCoins;
+                document.getElementById('bal').innerText = balance.toLocaleString();
+                alert(`[ТЕСТ] Начислено ${finalCoins} монет за ${stars} Stars!`);
+            }
+        }
+
+        // Работа с кейсом
+        function openCaseView(index) {
+            selectedCaseIndex = index;
+            const c = cases[index];
+            document.getElementById('current-case-name').innerText = `${c.icon} ${c.name}`;
+            document.getElementById('spinBtn').innerText = `Открыть за ${c.price} 🪙`;
+            document.getElementById('active-case-view').style.display = 'block';
+            generateTrack(c);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closeCaseView() {
+            document.getElementById('active-case-view').style.display = 'none';
+        }
+
+        function generateTrack(c) {
+            const track = document.getElementById('track');
             track.innerHTML = '';
             for (let i = 0; i < 40; i++) {
-                const item = getRandomItem();
+                const dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
                 const card = document.createElement('div');
-                card.className = `card ${item.class}`;
-                card.innerText = item.name;
+                card.className = 'drop-card';
+                card.innerHTML = `<span style="font-size:18px;">${c.icon}</span><span>${dropVal} 🪙</span>`;
                 track.appendChild(card);
             }
         }
 
-        generateTrack();
+        function spinCurrentCase() {
+            if (selectedCaseIndex === null) return;
+            const c = cases[selectedCaseIndex];
 
-        function spin() {
-            if (balance < 100) {
+            if (balance < c.price) {
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-                alert("Недостаточно средств!");
+                alert("Недостаточно монет! Пополни баланс во вкладке ⭐ Звёзды.");
                 return;
             }
 
-            balance -= 100;
-            document.getElementById('bal').innerText = balance;
+            balance -= c.price;
+            document.getElementById('bal').innerText = balance.toLocaleString();
+            
+            const spinBtn = document.getElementById('spinBtn');
             spinBtn.disabled = true;
 
             if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
-            generateTrack();
+            const track = document.getElementById('track');
+            generateTrack(c);
             track.style.transition = 'none';
             track.style.transform = 'translateX(0px)';
 
+            // Определяем выигранную сумму
+            const winCoins = c.drops[Math.floor(Math.random() * c.drops.length)];
+
             setTimeout(() => {
                 track.style.transition = 'transform 3s cubic-bezier(0.1, 1, 0.1, 1)';
-                const moveAmount = 2500 + Math.floor(Math.random() * 80);
+                const moveAmount = 2400 + Math.floor(Math.random() * 90);
                 track.style.transform = `translateX(-${moveAmount}px)`;
             }, 50);
 
             setTimeout(() => {
                 spinBtn.disabled = false;
+                balance += winCoins;
+                document.getElementById('bal').innerText = balance.toLocaleString();
+
+                // Добавляем предмет в инвентарь
+                inventory.push({ icon: c.icon, name: c.item, win: winCoins });
+                renderInventory();
+
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                alert(`🎉 Ты выиграл ${winCoins} 🪙 и предмет: ${c.item}!`);
             }, 3200);
+        }
+
+        function renderInventory() {
+            const list = document.getElementById('inventory-list');
+            if (inventory.length === 0) return;
+            list.innerHTML = '';
+            inventory.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'inv-card';
+                card.innerHTML = `
+                    <div class="inv-icon">${item.icon}</div>
+                    <div style="font-weight:bold;">${item.name}</div>
+                    <div style="color:var(--text-gold); font-size:10px; margin-top:2px;">+${item.win} 🪙</div>
+                `;
+                list.appendChild(card);
+            });
         }
     </script>
 </body>
