@@ -569,7 +569,7 @@
             document.getElementById('starsCalcPreview').innerText = text;
         }
 
-        // Оплата кастомного кол-ва Звёзд через Telegram Stars API
+        // Исправленная оплата без раздражающего системного алерта
         function buyCustomStars() {
             const starsCount = parseInt(document.getElementById('customStarsInput').value, 10);
             if (!starsCount || starsCount <= 0) {
@@ -581,18 +581,10 @@
             const finalCoins = Math.floor(baseCoins * activePromoBonus);
 
             if (tg && tg.openInvoice) {
-                // Если WebApp открыт внутри Telegram, просим сервер/бота сгенерировать инвойс
-                // tg.openInvoice(invoiceUrl, (status) => {
-                //     if (status === 'paid') {
-                //          balance += finalCoins;
-                //          updateBalanceUI();
-                //          saveData();
-                //          showWinModal("⭐", "Оплата прошла успешно!", finalCoins, "УСПЕШНО");
-                //     }
-                // });
-                alert(`Здесь вызывается инвойс на ${starsCount} Звёзд в Telegram! На сервере будет сгенерирован чек.`);
+                // Место для подключения реального бэкенда инвойсов Telegram
+                showWinModal("⭐", "Для работы оплаты подключите бэкенд к tg.openInvoice!", 0, "ИНФО");
             } else {
-                showWinModal("⭐", "Для оплаты за звёзды откройте через Telegram!", 0, "ИНФО");
+                showWinModal("⭐", "Для оплаты за звёзды откройте приложение через Telegram!", 0, "ИНФО");
             }
         }
 
