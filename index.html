@@ -25,7 +25,7 @@
             user-select: none;
         }
 
-        /* Шапка с балансом */
+        /* Шапка */
         .header {
             display: flex;
             justify-content: space-between;
@@ -57,7 +57,7 @@
             font-size: 16px;
         }
 
-        /* Навигация / Вкладки */
+        /* Вкладки */
         .tabs {
             display: flex;
             gap: 8px;
@@ -87,7 +87,7 @@
         .page { display: none; }
         .page.active { display: block; }
 
-        /* Пополнение за Звёзды и Промокод */
+        /* Пополнение / Промокод */
         .deposit-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -99,7 +99,7 @@
         .promo-box {
             display: flex;
             gap: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .promo-input {
@@ -138,14 +138,10 @@
             cursor: pointer;
         }
 
-        .star-pack:hover {
-            border-color: var(--accent-cyan);
-        }
-
         .star-amount { font-size: 18px; font-weight: bold; color: var(--accent-cyan); }
         .coin-get { font-size: 13px; color: #9ca3af; margin-top: 4px; }
 
-        /* Список 10 кейсов */
+        /* Кейсы */
         .cases-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -163,18 +159,8 @@
         }
 
         .case-card:active { transform: scale(0.97); }
-
-        .case-icon {
-            font-size: 38px;
-            margin-bottom: 8px;
-        }
-
-        .case-title {
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 6px;
-        }
-
+        .case-icon { font-size: 38px; margin-bottom: 8px; }
+        .case-title { font-weight: bold; font-size: 14px; margin-bottom: 6px; }
         .case-price {
             display: inline-block;
             background: rgba(245, 158, 11, 0.2);
@@ -185,7 +171,7 @@
             font-weight: bold;
         }
 
-        /* Рулетка */
+        /* Окно Рулетки */
         .roulette-modal {
             background: var(--card-bg);
             border-radius: 20px;
@@ -240,6 +226,7 @@
             font-size: 12px;
             flex-shrink: 0;
             border: 1px solid rgba(255,255,255,0.1);
+            box-sizing: border-box;
         }
 
         .spin-btn {
@@ -254,8 +241,92 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
         }
-
         .spin-btn:disabled { opacity: 0.5; }
+
+        /* ВСПЛЫВАЮЩЕЕ ОКНО ВЫИГРЫША */
+        .win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(13, 14, 21, 0.88);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .win-card {
+            background: linear-gradient(145deg, #1f1b3a, #141324);
+            border: 2px solid var(--accent-pink);
+            border-radius: 24px;
+            padding: 25px;
+            text-align: center;
+            width: 80%;
+            max-width: 320px;
+            box-shadow: 0 0 30px rgba(236, 72, 153, 0.4);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .win-icon {
+            font-size: 70px;
+            margin: 10px 0;
+            filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.6));
+            animation: floatIcon 2s ease-in-out infinite;
+        }
+
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .win-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .win-item-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin-top: 6px;
+        }
+
+        .win-coins {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 14px;
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid var(--text-gold);
+            border-radius: 20px;
+            color: var(--text-gold);
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .claim-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: linear-gradient(90deg, #10b981, #059669);
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
 
         /* Инвентарь */
         .inventory-grid {
@@ -286,22 +357,21 @@
 
     <!-- Вкладки -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('cases')">📦 Кейсы</button>
-        <button class="tab-btn" onclick="switchTab('deposit')">⭐ Звёзды</button>
-        <button class="tab-btn" onclick="switchTab('inventory')">🎒 Инвентарь</button>
+        <button class="tab-btn active" onclick="switchTab('cases', event)">📦 Кейсы</button>
+        <button class="tab-btn" onclick="switchTab('deposit', event)">⭐ Звёзды</button>
+        <button class="tab-btn" onclick="switchTab('inventory', event)">🎒 Инвентарь</button>
     </div>
 
     <!-- ВКЛАДКА 1: КЕЙСЫ -->
     <div id="cases-page" class="page active">
         
-        <!-- Окно выбранного кейса / Рулетка -->
         <div id="active-case-view" class="roulette-modal" style="display: none;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3 id="current-case-name" style="margin:0;">Название Кейса</h3>
-                <button onclick="closeCaseView()" style="background:none; border:none; color:#888; font-size:18px;">✖</button>
+                <button onclick="closeCaseView()" style="background:none; border:none; color:#888; font-size:18px; cursor:pointer;">✖</button>
             </div>
             
-            <div class="roulette-container">
+            <div class="roulette-container" id="rouletteContainer">
                 <div class="pointer"></div>
                 <div class="track" id="track"></div>
             </div>
@@ -309,7 +379,6 @@
             <button class="spin-btn" id="spinBtn" onclick="spinCurrentCase()">Открыть кейс</button>
         </div>
 
-        <!-- Сетка 10 кейсов -->
         <div class="cases-grid" id="cases-list"></div>
     </div>
 
@@ -321,7 +390,7 @@
                 <input type="text" id="promoInput" class="promo-input" placeholder="Введи промокод">
                 <button class="promo-btn" onclick="applyPromo()">Ввести</button>
             </div>
-            <div id="promo-status" style="font-size:12px; color:var(--accent-cyan);"></div>
+            <div id="promo-status" style="font-size:12px;"></div>
         </div>
 
         <div class="deposit-card">
@@ -357,16 +426,51 @@
         </div>
     </div>
 
+    <!-- ОКНО ШОУ ВЫИГРЫША -->
+    <div class="win-overlay" id="winModal">
+        <div class="win-card">
+            <div class="win-title" id="winTitleHeader">ПОБЕДА! 🎉</div>
+            <div class="win-icon" id="winIcon">🚽</div>
+            <div class="win-item-name" id="winItemName">Skibidi Toilet</div>
+            <div class="win-coins" id="winCoinsText">+10 🪙</div>
+            <button class="claim-btn" onclick="closeWinModal()">ЗАБРАТЬ</button>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) tg.expand();
 
         let balance = 0;
-        let activePromoBonus = 1; // 1 = обычный, 1.05 = +5%
+        let activePromoBonus = 1;
         let inventory = [];
         let selectedCaseIndex = null;
 
-        // Конфигурация 10 кейсов
+        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ ---
+        function loadData() {
+            const savedBal = localStorage.getItem('brainup_balance');
+            const savedInv = localStorage.getItem('brainup_inventory');
+            const savedBonus = localStorage.getItem('brainup_bonus');
+
+            if (savedBal !== null) balance = parseInt(savedBal, 10);
+            if (savedInv !== null) inventory = JSON.parse(savedInv);
+            if (savedBonus !== null) activePromoBonus = parseFloat(savedBonus);
+
+            updateBalanceUI();
+            renderInventory();
+            updatePacksDisplay();
+        }
+
+        function saveData() {
+            localStorage.setItem('brainup_balance', balance);
+            localStorage.setItem('brainup_inventory', JSON.stringify(inventory));
+            localStorage.setItem('brainup_bonus', activePromoBonus);
+        }
+
+        function updateBalanceUI() {
+            document.getElementById('bal').innerText = balance.toLocaleString();
+        }
+
         const cases = [
             { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [3, 5, 7, 9, 12, 20, 600], item: "Skibidi Toilet" },
             { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 5, 7, 9, 15, 30, 600], item: "Chad Jawline" },
@@ -380,7 +484,6 @@
             { id: 10, name: "Supreme BrainRot", price: 500, icon: "👑", drops: [100, 200, 350, 500, 800, 2500], item: "Golden Skibidi God" }
         ];
 
-        // Отрисовка списка кейсов
         function renderCases() {
             const list = document.getElementById('cases-list');
             list.innerHTML = '';
@@ -396,31 +499,30 @@
                 list.appendChild(card);
             });
         }
-        renderCases();
 
-        // Вкладки
-        function switchTab(tab) {
+        function switchTab(tab, e) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             
-            event.target.classList.add('active');
+            if (e && e.target) e.target.classList.add('active');
             document.getElementById(`${tab}-page`).classList.add('active');
         }
 
-        // Промокоды
         function applyPromo() {
             const code = document.getElementById('promoInput').value.trim().toUpperCase();
             const status = document.getElementById('promo-status');
 
             if (code === 'DEVADMIN') {
                 balance += 1000000;
-                document.getElementById('bal').innerText = balance.toLocaleString();
+                updateBalanceUI();
+                saveData();
                 status.style.color = '#10b981';
-                status.innerText = "✅ Админ-код активирован: +1,000,000 монет!";
+                status.innerText = "✅ Вы получили 1,000,000 монет!";
             } else if (code === 'BRAINUP5') {
                 activePromoBonus = 1.05;
+                saveData();
                 status.style.color = '#10b981';
-                status.innerText = "✅ Промокод на +5% к пополнению активирован!";
+                status.innerText = "✅ +5% бонус к пополнению активирован!";
                 updatePacksDisplay();
             } else {
                 status.style.color = '#ef4444';
@@ -438,30 +540,27 @@
             }
         }
 
-        // Оплата звёздами
         function buyStars(stars) {
             const baseCoins = stars * 2;
             const finalCoins = Math.floor(baseCoins * activePromoBonus);
-
-            if (tg && tg.openInvoice) {
-                // Если есть встроенный счёт Stars
-                alert(`Инициирована покупка за ${stars} Stars -> ${finalCoins} монет.`);
-            } else {
-                // Симуляция успешного пополнения для теста
-                balance += finalCoins;
-                document.getElementById('bal').innerText = balance.toLocaleString();
-                alert(`[ТЕСТ] Начислено ${finalCoins} монет за ${stars} Stars!`);
-            }
+            balance += finalCoins;
+            updateBalanceUI();
+            saveData();
+            showWinModal("⭐", "Пополнение Stars", finalCoins, "ПОПОЛНЕНИЕ!");
         }
 
-        // Работа с кейсом
         function openCaseView(index) {
             selectedCaseIndex = index;
             const c = cases[index];
             document.getElementById('current-case-name').innerText = `${c.icon} ${c.name}`;
             document.getElementById('spinBtn').innerText = `Открыть за ${c.price} 🪙`;
             document.getElementById('active-case-view').style.display = 'block';
+            
+            const track = document.getElementById('track');
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
             generateTrack(c);
+            
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -469,11 +568,18 @@
             document.getElementById('active-case-view').style.display = 'none';
         }
 
-        function generateTrack(c) {
+        // Генерация трека с ГОТОВЫМ выигрышным элементом на 28-й позиции
+        function generateTrack(c, targetWinVal = null) {
             const track = document.getElementById('track');
             track.innerHTML = '';
             for (let i = 0; i < 40; i++) {
-                const dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
+                let dropVal;
+                if (i === 28 && targetWinVal !== null) {
+                    dropVal = targetWinVal; // Подставляем выигрыш строго на победную позицию!
+                } else {
+                    dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
+                }
+
                 const card = document.createElement('div');
                 card.className = 'drop-card';
                 card.innerHTML = `<span style="font-size:18px;">${c.icon}</span><span>${dropVal} 🪙</span>`;
@@ -487,51 +593,84 @@
 
             if (balance < c.price) {
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-                alert("Недостаточно монет! Пополни баланс во вкладке ⭐ Звёзды.");
+                showWinModal("❌", "Недостаточно монет!", 0, "ОШИБКА");
                 return;
             }
 
+            // 1. Списываем стоимость
             balance -= c.price;
-            document.getElementById('bal').innerText = balance.toLocaleString();
+            updateBalanceUI();
+            saveData();
             
             const spinBtn = document.getElementById('spinBtn');
             spinBtn.disabled = true;
 
             if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
+            // 2. Выбираем случайный выигрыш заранее
+            const winCoins = c.drops[Math.floor(Math.random() * c.drops.length)];
+
+            // 3. Строим трек с выигрышем строго на 28 карточке
+            generateTrack(c, winCoins);
+
             const track = document.getElementById('track');
-            generateTrack(c);
             track.style.transition = 'none';
             track.style.transform = 'translateX(0px)';
 
-            // Определяем выигранную сумму
-            const winCoins = c.drops[Math.floor(Math.random() * c.drops.length)];
+            // Расчет смещения: карточка №28 встанет ровно под красную стрелку
+            const cardWidth = 93; // 85px ширина + 8px margin
+            const containerWidth = document.getElementById('rouletteContainer').offsetWidth;
+            const targetPos = (28 * cardWidth) - (containerWidth / 2) + (cardWidth / 2);
 
             setTimeout(() => {
                 track.style.transition = 'transform 3s cubic-bezier(0.1, 1, 0.1, 1)';
-                const moveAmount = 2400 + Math.floor(Math.random() * 90);
-                track.style.transform = `translateX(-${moveAmount}px)`;
+                track.style.transform = `translateX(-${targetPos}px)`;
             }, 50);
 
+            // 4. После остановки выдаем награду
             setTimeout(() => {
                 spinBtn.disabled = false;
                 balance += winCoins;
-                document.getElementById('bal').innerText = balance.toLocaleString();
+                updateBalanceUI();
 
-                // Добавляем предмет в инвентарь
                 inventory.push({ icon: c.icon, name: c.item, win: winCoins });
                 renderInventory();
+                saveData();
 
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                alert(`🎉 Ты выиграл ${winCoins} 🪙 и предмет: ${c.item}!`);
+                
+                showWinModal(c.icon, c.item, winCoins, "ВЫИГРЫШ! 🎉");
             }, 3200);
+        }
+
+        function showWinModal(icon, name, coins, title = "ПОБЕДА! 🎉") {
+            document.getElementById('winTitleHeader').innerText = title;
+            document.getElementById('winIcon').innerText = icon;
+            document.getElementById('winItemName').innerText = name;
+            
+            const coinsBox = document.getElementById('winCoinsText');
+            if (coins > 0) {
+                coinsBox.style.display = 'inline-block';
+                coinsBox.innerText = `+${coins} 🪙`;
+            } else {
+                coinsBox.style.display = 'none';
+            }
+
+            document.getElementById('winModal').style.display = 'flex';
+        }
+
+        function closeWinModal() {
+            document.getElementById('winModal').style.display = 'none';
         }
 
         function renderInventory() {
             const list = document.getElementById('inventory-list');
-            if (inventory.length === 0) return;
+            if (!inventory || inventory.length === 0) {
+                list.innerHTML = '<div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пока пуст. Открывай кейсы!</div>';
+                return;
+            }
             list.innerHTML = '';
-            inventory.forEach(item => {
+            inventory.slice().reverse().forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'inv-card';
                 card.innerHTML = `
@@ -542,6 +681,10 @@
                 list.appendChild(card);
             });
         }
+
+        // Запуск при старте
+        renderCases();
+        loadData();
     </script>
 </body>
 </html>
