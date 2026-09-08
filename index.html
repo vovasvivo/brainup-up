@@ -87,7 +87,7 @@
         .page { display: none; }
         .page.active { display: block; }
 
-        /* Пополнение / Промокод */
+        /* Карточка покупки */
         .deposit-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -175,6 +175,7 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
         }
+        .buy-stars-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Кейсы */
         .cases-grid {
@@ -206,7 +207,7 @@
             font-weight: bold;
         }
 
-        /* Окно Рулетки */
+        /* Рулетка */
         .roulette-modal {
             background: var(--card-bg);
             border-radius: 20px;
@@ -278,7 +279,7 @@
         }
         .spin-btn:disabled { opacity: 0.5; }
 
-        /* ВСПЛЫВАЮЩЕЕ ОКНО ВЫИГРЫША */
+        /* Окно выигрыша */
         .win-overlay {
             position: fixed;
             top: 0;
@@ -302,24 +303,12 @@
             width: 80%;
             max-width: 320px;
             box-shadow: 0 0 30px rgba(236, 72, 153, 0.4);
-            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes popIn {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
         }
 
         .win-icon {
             font-size: 70px;
             margin: 10px 0;
             filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.6));
-            animation: floatIcon 2s ease-in-out infinite;
-        }
-
-        @keyframes floatIcon {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
         }
 
         .win-title {
@@ -327,7 +316,6 @@
             font-weight: 900;
             color: var(--accent-cyan);
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
         .win-item-name {
@@ -360,7 +348,6 @@
             font-weight: bold;
             border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
 
         /* Инвентарь */
@@ -430,15 +417,15 @@
 
         <div class="deposit-card">
             <h4 style="margin-top:0; margin-bottom:6px;">⭐ Кастомная покупка за Telegram Stars</h4>
-            <p style="font-size:12px; color:#888; margin-top:0; margin-bottom:12px;">Базовый курс: 1 Звезда = 2 Монеты</p>
+            <p style="font-size:12px; color:#888; margin-top:0; margin-bottom:12px;">Курс: 1 Звезда = 2 Монеты</p>
             
             <div class="custom-stars-box">
                 <div class="stars-input-container">
                     <span>⭐</span>
-                    <input type="number" id="customStarsInput" class="stars-input" placeholder="Введите кол-во звёзд" min="1" value="10" oninput="calculateCustomCoins()">
+                    <input type="number" id="customStarsInput" class="stars-input" placeholder="Количество звёзд" min="1" value="10" oninput="calculateCustomCoins()">
                 </div>
                 <div class="stars-calc-preview" id="starsCalcPreview">Ты получишь: 20 🪙</div>
-                <button class="buy-stars-btn" onclick="buyCustomStars()">ОПЛАТИТЬ ЗВЁЗДАМИ</button>
+                <button class="buy-stars-btn" id="payStarsBtn" onclick="buyCustomStars()">ОПЛАТИТЬ ЗВЁЗДАМИ</button>
             </div>
         </div>
     </div>
@@ -451,7 +438,7 @@
         </div>
     </div>
 
-    <!-- ОКНО ШОУ ВЫИГРЫША -->
+    <!-- ОКНО ВЫИГРЫША -->
     <div class="win-overlay" id="winModal">
         <div class="win-card">
             <div class="win-title" id="winTitleHeader">ПОБЕДА! 🎉</div>
@@ -471,7 +458,6 @@
         let inventory = [];
         let selectedCaseIndex = null;
 
-        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ ---
         function loadData() {
             const savedBal = localStorage.getItem('brainup_balance');
             const savedInv = localStorage.getItem('brainup_inventory');
@@ -556,7 +542,6 @@
             document.getElementById('promoInput').value = '';
         }
 
-        // Подсчет монет при вводе кастомных звёзд
         function calculateCustomCoins() {
             const inputVal = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
             const baseCoins = inputVal * 2;
@@ -569,8 +554,8 @@
             document.getElementById('starsCalcPreview').innerText = text;
         }
 
-        // Оплата кастомного кол-ва Звёзд через Telegram Stars API
-        function buyCustomStars() {
+        // --- БЕЗОПАСНАЯ ПОКУПКА ЧЕРЕЗ TELEGRAM STARS ---
+        async function buyCustomStars() {
             const starsCount = parseInt(document.getElementById('customStarsInput').value, 10);
             if (!starsCount || starsCount <= 0) {
                 showWinModal("⚠️", "Укажите корректное кол-во звёзд", 0, "ОШИБКА");
@@ -578,21 +563,57 @@
             }
 
             const baseCoins = starsCount * 2;
-            const finalCoins = Math.floor(baseCoins * activePromoBonus);
+            const expectedCoins = Math.floor(baseCoins * activePromoBonus);
 
-            if (tg && tg.openInvoice) {
-                // Если WebApp открыт внутри Telegram, просим сервер/бота сгенерировать инвойс
-                // tg.openInvoice(invoiceUrl, (status) => {
-                //     if (status === 'paid') {
-                //          balance += finalCoins;
-                //          updateBalanceUI();
-                //          saveData();
-                //          showWinModal("⭐", "Оплата прошла успешно!", finalCoins, "УСПЕШНО");
-                //     }
-                // });
-                alert(`Здесь вызывается инвойс на ${starsCount} Звёзд в Telegram! На сервере будет сгенерирован чек.`);
-            } else {
-                showWinModal("⭐", "Для оплаты за звёзды откройте через Telegram!", 0, "ИНФО");
+            if (!tg || !tg.openInvoice) {
+                showWinModal("⭐", "Откройте приложение внутри Telegram для оплаты Звёздами!", 0, "ОШИБКА");
+                return;
+            }
+
+            const payBtn = document.getElementById('payStarsBtn');
+            payBtn.disabled = true;
+            payBtn.innerText = "СЗДАНИЕ СЧЕТА...";
+
+            try {
+                // Запрос к бэкенду/боту на создание официального инвойса (invoice_url)
+                const response = await fetch('/create-stars-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stars: starsCount,
+                        initData: tg.initData
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok && data.invoiceLink) {
+                    // Открываем нативное окно оплаты Telegram Stars
+                    tg.openInvoice(data.invoiceLink, (status) => {
+                        payBtn.disabled = false;
+                        payBtn.innerText = "ОПЛАТИТЬ ЗВЁЗДАМИ";
+
+                        // Строгая проверка: монеты добавляются ТОЛЬКО если статус 'paid'
+                        if (status === 'paid') {
+                            balance += expectedCoins;
+                            updateBalanceUI();
+                            saveData();
+                            showWinModal("⭐", "Оплата прошла успешно!", expectedCoins, "УСПЕШНО");
+                        } else if (status === 'cancelled') {
+                            showWinModal("ℹ️", "Оплата отменена", 0, "ОТМЕНА");
+                        } else {
+                            showWinModal("❌", "Ошибка или неполный платёж", 0, "ОШИБКА");
+                        }
+                    });
+                } else {
+                    payBtn.disabled = false;
+                    payBtn.innerText = "ОПЛАТИТЬ ЗВЁЗДАМИ";
+                    showWinModal("⚠️", "Подключите бэкенд бота для счетов Stars", 0, "ИНФО");
+                }
+            } catch (err) {
+                payBtn.disabled = false;
+                payBtn.innerText = "ОПЛАТИТЬ ЗВЁЗДАМИ";
+                showWinModal("⚠️", "Подключите бэкенд бота для генерации чека Stars", 0, "ИНФО");
             }
         }
 
