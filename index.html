@@ -123,23 +123,58 @@
             cursor: pointer;
         }
 
-        .stars-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        /* Кастомный ввод Звёзд */
+        .custom-stars-box {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
         }
 
-        .star-pack {
-            background: #1e2235;
-            border: 1px solid rgba(6, 182, 212, 0.3);
+        .stars-input-container {
+            display: flex;
+            align-items: center;
+            background: #0d0e15;
+            border: 1px solid rgba(6, 182, 212, 0.4);
             border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
+            padding: 0 12px;
         }
 
-        .star-amount { font-size: 18px; font-weight: bold; color: var(--accent-cyan); }
-        .coin-get { font-size: 13px; color: #9ca3af; margin-top: 4px; }
+        .stars-input-container span {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .stars-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 12px 0;
+            outline: none;
+        }
+
+        .stars-calc-preview {
+            font-size: 14px;
+            color: var(--accent-cyan);
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .buy-stars-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+            border: none;
+            color: black;
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+        }
 
         /* Кейсы */
         .cases-grid {
@@ -394,26 +429,16 @@
         </div>
 
         <div class="deposit-card">
-            <h4 style="margin-top:0; margin-bottom:6px;">⭐ Купить монеты за Telegram Stars</h4>
-            <p style="font-size:12px; color:#888; margin-top:0; margin-bottom:15px;">Курс: 1 Звезда = 2 Монеты</p>
+            <h4 style="margin-top:0; margin-bottom:6px;">⭐ Кастомная покупка за Telegram Stars</h4>
+            <p style="font-size:12px; color:#888; margin-top:0; margin-bottom:12px;">Базовый курс: 1 Звезда = 2 Монеты</p>
             
-            <div class="stars-grid">
-                <div class="star-pack" onclick="buyStars(25)">
-                    <div class="star-amount">⭐ 25 Stars</div>
-                    <div class="coin-get" id="pack-25">50 🪙</div>
+            <div class="custom-stars-box">
+                <div class="stars-input-container">
+                    <span>⭐</span>
+                    <input type="number" id="customStarsInput" class="stars-input" placeholder="Введите кол-во звёзд" min="1" value="10" oninput="calculateCustomCoins()">
                 </div>
-                <div class="star-pack" onclick="buyStars(50)">
-                    <div class="star-amount">⭐ 50 Stars</div>
-                    <div class="coin-get" id="pack-50">100 🪙</div>
-                </div>
-                <div class="star-pack" onclick="buyStars(100)">
-                    <div class="star-amount">⭐ 100 Stars</div>
-                    <div class="coin-get" id="pack-100">200 🪙</div>
-                </div>
-                <div class="star-pack" onclick="buyStars(250)">
-                    <div class="star-amount">⭐ 250 Stars</div>
-                    <div class="coin-get" id="pack-250">500 🪙</div>
-                </div>
+                <div class="stars-calc-preview" id="starsCalcPreview">Ты получишь: 20 🪙</div>
+                <button class="buy-stars-btn" onclick="buyCustomStars()">ОПЛАТИТЬ ЗВЁЗДАМИ</button>
             </div>
         </div>
     </div>
@@ -458,7 +483,7 @@
 
             updateBalanceUI();
             renderInventory();
-            updatePacksDisplay();
+            calculateCustomCoins();
         }
 
         function saveData() {
@@ -523,7 +548,7 @@
                 saveData();
                 status.style.color = '#10b981';
                 status.innerText = "✅ +5% бонус к пополнению активирован!";
-                updatePacksDisplay();
+                calculateCustomCoins();
             } else {
                 status.style.color = '#ef4444';
                 status.innerText = "❌ Неверный промокод";
@@ -531,22 +556,44 @@
             document.getElementById('promoInput').value = '';
         }
 
-        function updatePacksDisplay() {
+        // Подсчет монет при вводе кастомных звёзд
+        function calculateCustomCoins() {
+            const inputVal = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
+            const baseCoins = inputVal * 2;
+            const finalCoins = Math.floor(baseCoins * activePromoBonus);
+            
+            let text = `Ты получишь: ${finalCoins.toLocaleString()} 🪙`;
             if (activePromoBonus > 1) {
-                document.getElementById('pack-25').innerText = `${Math.floor(50 * 1.05)} 🪙 (+5%)`;
-                document.getElementById('pack-50').innerText = `${Math.floor(100 * 1.05)} 🪙 (+5%)`;
-                document.getElementById('pack-100').innerText = `${Math.floor(200 * 1.05)} 🪙 (+5%)`;
-                document.getElementById('pack-250').innerText = `${Math.floor(500 * 1.05)} 🪙 (+5%)`;
+                text += ` (+5% бонус!)`;
             }
+            document.getElementById('starsCalcPreview').innerText = text;
         }
 
-        function buyStars(stars) {
-            const baseCoins = stars * 2;
+        // Оплата кастомного кол-ва Звёзд через Telegram Stars API
+        function buyCustomStars() {
+            const starsCount = parseInt(document.getElementById('customStarsInput').value, 10);
+            if (!starsCount || starsCount <= 0) {
+                showWinModal("⚠️", "Укажите корректное кол-во звёзд", 0, "ОШИБКА");
+                return;
+            }
+
+            const baseCoins = starsCount * 2;
             const finalCoins = Math.floor(baseCoins * activePromoBonus);
-            balance += finalCoins;
-            updateBalanceUI();
-            saveData();
-            showWinModal("⭐", "Пополнение Stars", finalCoins, "ПОПОЛНЕНИЕ!");
+
+            if (tg && tg.openInvoice) {
+                // Если WebApp открыт внутри Telegram, просим сервер/бота сгенерировать инвойс
+                // tg.openInvoice(invoiceUrl, (status) => {
+                //     if (status === 'paid') {
+                //          balance += finalCoins;
+                //          updateBalanceUI();
+                //          saveData();
+                //          showWinModal("⭐", "Оплата прошла успешно!", finalCoins, "УСПЕШНО");
+                //     }
+                // });
+                alert(`Здесь вызывается инвойс на ${starsCount} Звёзд в Telegram! На сервере будет сгенерирован чек.`);
+            } else {
+                showWinModal("⭐", "Для оплаты за звёзды откройте через Telegram!", 0, "ИНФО");
+            }
         }
 
         function openCaseView(index) {
@@ -568,14 +615,13 @@
             document.getElementById('active-case-view').style.display = 'none';
         }
 
-        // Генерация трека с ГОТОВЫМ выигрышным элементом на 28-й позиции
         function generateTrack(c, targetWinVal = null) {
             const track = document.getElementById('track');
             track.innerHTML = '';
             for (let i = 0; i < 40; i++) {
                 let dropVal;
                 if (i === 28 && targetWinVal !== null) {
-                    dropVal = targetWinVal; // Подставляем выигрыш строго на победную позицию!
+                    dropVal = targetWinVal;
                 } else {
                     dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
                 }
@@ -597,7 +643,6 @@
                 return;
             }
 
-            // 1. Списываем стоимость
             balance -= c.price;
             updateBalanceUI();
             saveData();
@@ -607,18 +652,14 @@
 
             if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
-            // 2. Выбираем случайный выигрыш заранее
             const winCoins = c.drops[Math.floor(Math.random() * c.drops.length)];
-
-            // 3. Строим трек с выигрышем строго на 28 карточке
             generateTrack(c, winCoins);
 
             const track = document.getElementById('track');
             track.style.transition = 'none';
             track.style.transform = 'translateX(0px)';
 
-            // Расчет смещения: карточка №28 встанет ровно под красную стрелку
-            const cardWidth = 93; // 85px ширина + 8px margin
+            const cardWidth = 93;
             const containerWidth = document.getElementById('rouletteContainer').offsetWidth;
             const targetPos = (28 * cardWidth) - (containerWidth / 2) + (cardWidth / 2);
 
@@ -627,7 +668,6 @@
                 track.style.transform = `translateX(-${targetPos}px)`;
             }, 50);
 
-            // 4. После остановки выдаем награду
             setTimeout(() => {
                 spinBtn.disabled = false;
                 balance += winCoins;
@@ -651,7 +691,7 @@
             const coinsBox = document.getElementById('winCoinsText');
             if (coins > 0) {
                 coinsBox.style.display = 'inline-block';
-                coinsBox.innerText = `+${coins} 🪙`;
+                coinsBox.innerText = `+${coins.toLocaleString()} 🪙`;
             } else {
                 coinsBox.style.display = 'none';
             }
@@ -682,7 +722,6 @@
             });
         }
 
-        // Запуск при старте
         renderCases();
         loadData();
     </script>
