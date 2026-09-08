@@ -2,161 +2,130 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>BRAINBET Mini App</title>
-    <!-- Telegram WebApp SDK -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainUp App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { box-sizing: border-box; }
         body {
-            background-color: #0d0e15;
+            background-color: #1a1a1a;
             color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            user-select: none;
-        }
-        .header {
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #161824;
-            padding: 12px 20px;
-            border-radius: 14px;
-            border: 1px solid #232738;
-            margin-bottom: 20px;
-        }
-        .logo { font-weight: 900; font-size: 20px; color: #ff0055; letter-spacing: 1px; }
-        .balance { font-size: 18px; font-weight: bold; color: #00ff88; }
-        
-        .case-card {
-            width: 100%;
-            max-width: 400px;
-            background: #161824;
-            border-radius: 20px;
-            padding: 20px;
-            border: 1px solid #232738;
+            font-family: Arial, sans-serif;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin: 0;
+            padding: 20px;
         }
-
-        .roulette-wrapper {
-            position: relative;
+        .balance {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        .roulette-container {
             width: 100%;
-            height: 110px;
-            background: #090a0f;
-            border-radius: 12px;
+            height: 120px;
             overflow: hidden;
-            border: 2px solid #ff0055;
-            margin: 20px 0;
+            border: 3px solid #ffcc00;
+            border-radius: 10px;
+            position: relative;
+            background: #2a2a2a;
+            margin-bottom: 20px;
         }
         .pointer {
             position: absolute;
-            top: 0; left: 50%;
+            top: 0;
+            left: 50%;
             transform: translateX(-50%);
-            width: 4px; height: 100%;
-            background: #ff0055;
+            width: 4px;
+            height: 100%;
+            background: red;
             z-index: 10;
-            box-shadow: 0 0 10px #ff0055;
         }
         .track {
             display: flex;
-            align-items: center;
             position: absolute;
-            left: 0; top: 0; height: 100%;
+            left: 0;
+            top: 10px;
             transition: transform 3s cubic-bezier(0.1, 1, 0.1, 1);
         }
-        .item {
-            min-width: 90px;
-            height: 90px;
+        .card {
+            width: 90px;
+            height: 100px;
             margin: 0 5px;
-            background: #1f2233;
-            border-radius: 10px;
+            background: #444;
+            border-radius: 8px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
             font-weight: bold;
+            font-size: 14px;
+            box-sizing: border-box;
+            flex-shrink: 0;
         }
-        .item .icon { font-size: 32px; margin-bottom: 4px; }
-        .item.trash { border: 1px solid #555; color: #888; }
-        .item.common { border: 1px solid #00aaff; color: #00aaff; }
-        .item.legendary { border: 1px solid #ff0055; color: #ff0055; background: #2b1120; }
-
-        .spin-btn {
-            width: 100%;
-            background: linear-gradient(90deg, #ff0055, #ff5500);
-            border: none;
-            color: white;
-            padding: 16px;
+        .nothing { border: 2px solid #888; color: #bbb; }
+        .common { border: 2px solid #0088cc; color: #0088cc; }
+        .legendary { border: 2px solid #ff0055; color: #ff0055; }
+        button {
+            padding: 15px 30px;
             font-size: 18px;
             font-weight: bold;
-            border-radius: 12px;
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(255, 0, 85, 0.4);
         }
-        .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        button:disabled {
+            background: #555;
+        }
     </style>
 </head>
 <body>
+    <h1>BrainUp App 🚀</h1>
+    <div class="balance">Баланс: <span id="bal">1000</span> 🪙</div>
 
-    <div class="header">
-        <div class="logo">BRAINBET</div>
-        <div class="balance">$<span id="bal">1000</span></div>
+    <div class="roulette-container">
+        <div class="pointer"></div>
+        <div class="track" id="track"></div>
     </div>
 
-    <div class="case-card">
-        <h3>🔥 BRAINROT CASE</h3>
-        <p style="color: #666; font-size: 14px;">Цена крутки: $100</p>
-        
-        <div class="roulette-wrapper">
-            <div class="pointer"></div>
-            <div class="track" id="track"></div>
-        </div>
-
-        <button class="spin-btn" id="spinBtn" onclick="spin()">КРУТИТЬ ($100)</button>
-    </div>
+    <button id="spinBtn" onclick="spin()">Крутить (100 🪙)</button>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачиваем Mini App на весь экран
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) tg.expand();
 
         let balance = 1000;
         const track = document.getElementById('track');
         const spinBtn = document.getElementById('spinBtn');
 
-        const itemsPool = [
-            { name: "Ничего", icon: "💀", type: "trash", win: 0 },
-            { name: "Скип", icon: "🍌", type: "common", win: 200 },
-            { name: "BRAINROT", icon: "💎", type: "legendary", win: 1000 }
+        const items = [
+            { name: "Ничего", class: "nothing", chance: 50 },
+            { name: "Common", class: "common", chance: 40 },
+            { name: "Legendary", class: "legendary", chance: 10 }
         ];
 
-        // Генерируем элементы ленты
+        function getRandomItem() {
+            const rand = Math.random() * 100;
+            if (rand < 50) return items[0];
+            if (rand < 90) return items[1];
+            return items[2];
+        }
+
         function generateTrack() {
             track.innerHTML = '';
             for (let i = 0; i < 40; i++) {
-                const rand = Math.random() * 100;
-                let item = itemsPool[0];
-                if (rand > 70 && rand <= 95) item = itemsPool[1];
-                if (rand > 95) item = itemsPool[2];
-
-                const div = document.createElement('div');
-                div.className = `item ${item.type}`;
-                div.innerHTML = `<div class="icon">${item.icon}</div><div>${item.name}</div>`;
-                track.appendChild(div);
+                const item = getRandomItem();
+                const card = document.createElement('div');
+                card.className = `card ${item.class}`;
+                card.innerText = item.name;
+                track.appendChild(card);
             }
         }
+
         generateTrack();
 
         function spin() {
             if (balance < 100) {
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
                 alert("Недостаточно средств!");
                 return;
             }
@@ -165,7 +134,7 @@
             document.getElementById('bal').innerText = balance;
             spinBtn.disabled = true;
 
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             generateTrack();
             track.style.transition = 'none';
@@ -173,14 +142,13 @@
 
             setTimeout(() => {
                 track.style.transition = 'transform 3s cubic-bezier(0.1, 1, 0.1, 1)';
-                // Сдвиг рулетки
                 const moveAmount = 2500 + Math.floor(Math.random() * 80);
                 track.style.transform = `translateX(-${moveAmount}px)`;
             }, 50);
 
             setTimeout(() => {
                 spinBtn.disabled = false;
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
             }, 3200);
         }
     </script>
