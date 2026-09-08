@@ -1,142 +1,188 @@
-{# Licensed under the Apache License: http://www.apache.org/licenses/LICENSE-2.0 #}
-{# For details: https://github.com/nedbat/coveragepy/blob/master/NOTICE.txt #}
-
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>{{ title|escape }}</title>
-    <link rel="icon" sizes="32x32" href="favicon_32.png">
-    <link rel="stylesheet" href="style.css" type="text/css">
-    {% if extra_css %}
-        <link rel="stylesheet" href="{{ extra_css }}" type="text/css">
-    {% endif %}
-    <script type="text/javascript" src="coverage_html.js" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BRAINBET Mini App</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #0d0e15;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+        .header {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #161824;
+            padding: 12px 20px;
+            border-radius: 14px;
+            border: 1px solid #232738;
+            margin-bottom: 20px;
+        }
+        .logo { font-weight: 900; font-size: 20px; color: #ff0055; letter-spacing: 1px; }
+        .balance { font-size: 18px; font-weight: bold; color: #00ff88; }
+        
+        .case-card {
+            width: 100%;
+            max-width: 400px;
+            background: #161824;
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid #232738;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .roulette-wrapper {
+            position: relative;
+            width: 100%;
+            height: 110px;
+            background: #090a0f;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #ff0055;
+            margin: 20px 0;
+        }
+        .pointer {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 4px; height: 100%;
+            background: #ff0055;
+            z-index: 10;
+            box-shadow: 0 0 10px #ff0055;
+        }
+        .track {
+            display: flex;
+            align-items: center;
+            position: absolute;
+            left: 0; top: 0; height: 100%;
+            transition: transform 3s cubic-bezier(0.1, 1, 0.1, 1);
+        }
+        .item {
+            min-width: 90px;
+            height: 90px;
+            margin: 0 5px;
+            background: #1f2233;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .item .icon { font-size: 32px; margin-bottom: 4px; }
+        .item.trash { border: 1px solid #555; color: #888; }
+        .item.common { border: 1px solid #00aaff; color: #00aaff; }
+        .item.legendary { border: 1px solid #ff0055; color: #ff0055; background: #2b1120; }
+
+        .spin-btn {
+            width: 100%;
+            background: linear-gradient(90deg, #ff0055, #ff5500);
+            border: none;
+            color: white;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255, 0, 85, 0.4);
+        }
+        .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
 </head>
-<body class="indexfile">
+<body>
 
-<header>
-    <div class="content">
-        <h1>{{ title|escape }}:
-            <span class="pc_cov">{{totals.pc_covered_str}}%</span>
-        </h1>
-
-        <aside id="help_panel_wrapper">
-            <input id="help_panel_state" type="checkbox">
-            <label for="help_panel_state">
-                <img id="keyboard_icon" src="keybd_closed.png" alt="Show/hide keyboard shortcuts" />
-            </label>
-            <div id="help_panel">
-                <p class="legend">Shortcuts on this page</p>
-                <div class="keyhelp">
-                    <p>
-                        <kbd>n</kbd>
-                        <kbd>s</kbd>
-                        <kbd>m</kbd>
-                        <kbd>x</kbd>
-                        {% if has_arcs %}
-                        <kbd>b</kbd>
-                        <kbd>p</kbd>
-                        {% endif %}
-                        <kbd>c</kbd>
-                        &nbsp; change column sorting
-                    </p>
-                    <p>
-                        <kbd>[</kbd>
-                        <kbd>]</kbd>
-                        &nbsp; prev/next file
-                    </p>
-                    <p>
-                        <kbd>?</kbd> &nbsp; show/hide this help
-                    </p>
-                </div>
-            </div>
-        </aside>
-
-        <form id="filter_container">
-            <input id="filter" type="text" value="" placeholder="filter..." />
-        </form>
-
-        <p class="text">
-            <a class="nav" href="{{__url__}}">coverage.py v{{__version__}}</a>,
-            created at {{ time_stamp }}
-        </p>
+    <div class="header">
+        <div class="logo">BRAINBET</div>
+        <div class="balance">$<span id="bal">1000</span></div>
     </div>
-</header>
 
-<main id="index">
-    <table class="index" data-sortable>
-        <thead>
-            {# The title="" attr doesn"t work in Safari. #}
-            <tr class="tablehead" title="Click to sort">
-                <th class="name left" aria-sort="none" data-shortcut="n">Module</th>
-                <th aria-sort="none" data-default-sort-order="descending" data-shortcut="s">statements</th>
-                <th aria-sort="none" data-default-sort-order="descending" data-shortcut="m">missing</th>
-                <th aria-sort="none" data-default-sort-order="descending" data-shortcut="x">excluded</th>
-                {% if has_arcs %}
-                <th aria-sort="none" data-default-sort-order="descending" data-shortcut="b">branches</th>
-                <th aria-sort="none" data-default-sort-order="descending" data-shortcut="p">partial</th>
-                {% endif %}
-                <th class="right" aria-sort="none" data-shortcut="c">coverage</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for file in files %}
-            <tr class="file">
-                <td class="name left"><a href="{{file.html_filename}}">{{file.relative_filename}}</a></td>
-                <td>{{file.nums.n_statements}}</td>
-                <td>{{file.nums.n_missing}}</td>
-                <td>{{file.nums.n_excluded}}</td>
-                {% if has_arcs %}
-                <td>{{file.nums.n_branches}}</td>
-                <td>{{file.nums.n_partial_branches}}</td>
-                {% endif %}
-                <td class="right" data-ratio="{{file.nums.ratio_covered|pair}}">{{file.nums.pc_covered_str}}%</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr class="total">
-                <td class="name left">Total</td>
-                <td>{{totals.n_statements}}</td>
-                <td>{{totals.n_missing}}</td>
-                <td>{{totals.n_excluded}}</td>
-                {% if has_arcs %}
-                <td>{{totals.n_branches}}</td>
-                <td>{{totals.n_partial_branches}}</td>
-                {% endif %}
-                <td class="right" data-ratio="{{totals.ratio_covered|pair}}">{{totals.pc_covered_str}}%</td>
-            </tr>
-        </tfoot>
-    </table>
+    <div class="case-card">
+        <h3>🔥 BRAINROT CASE</h3>
+        <p style="color: #666; font-size: 14px;">Цена крутки: $100</p>
+        
+        <div class="roulette-wrapper">
+            <div class="pointer"></div>
+            <div class="track" id="track"></div>
+        </div>
 
-    <p id="no_rows">
-        No items found using the specified filter.
-    </p>
-
-    {% if skipped_covered_msg %}
-        <p>{{ skipped_covered_msg }}</p>
-    {% endif %}
-    {% if skipped_empty_msg %}
-        <p>{{ skipped_empty_msg }}</p>
-    {% endif %}
-</main>
-
-<footer>
-    <div class="content">
-        <p>
-            <a class="nav" href="{{__url__}}">coverage.py v{{__version__}}</a>,
-            created at {{ time_stamp }}
-        </p>
+        <button class="spin-btn" id="spinBtn" onclick="spin()">КРУТИТЬ ($100)</button>
     </div>
-    <aside class="hidden">
-        <a id="prevFileLink" class="nav" href="{{ final_html }}"/>
-        <a id="nextFileLink" class="nav" href="{{ first_html }}"/>
-        <button type="button" class="button_prev_file" data-shortcut="["/>
-        <button type="button" class="button_next_file" data-shortcut="]"/>
-        <button type="button" class="button_show_hide_help" data-shortcut="?"/>
-    </aside>
-</footer>
 
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем Mini App на весь экран
+
+        let balance = 1000;
+        const track = document.getElementById('track');
+        const spinBtn = document.getElementById('spinBtn');
+
+        const itemsPool = [
+            { name: "Ничего", icon: "💀", type: "trash", win: 0 },
+            { name: "Скип", icon: "🍌", type: "common", win: 200 },
+            { name: "BRAINROT", icon: "💎", type: "legendary", win: 1000 }
+        ];
+
+        // Генерируем элементы ленты
+        function generateTrack() {
+            track.innerHTML = '';
+            for (let i = 0; i < 40; i++) {
+                const rand = Math.random() * 100;
+                let item = itemsPool[0];
+                if (rand > 70 && rand <= 95) item = itemsPool[1];
+                if (rand > 95) item = itemsPool[2];
+
+                const div = document.createElement('div');
+                div.className = `item ${item.type}`;
+                div.innerHTML = `<div class="icon">${item.icon}</div><div>${item.name}</div>`;
+                track.appendChild(div);
+            }
+        }
+        generateTrack();
+
+        function spin() {
+            if (balance < 100) {
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                alert("Недостаточно средств!");
+                return;
+            }
+
+            balance -= 100;
+            document.getElementById('bal').innerText = balance;
+            spinBtn.disabled = true;
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            generateTrack();
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
+
+            setTimeout(() => {
+                track.style.transition = 'transform 3s cubic-bezier(0.1, 1, 0.1, 1)';
+                // Сдвиг рулетки
+                const moveAmount = 2500 + Math.floor(Math.random() * 80);
+                track.style.transform = `translateX(-${moveAmount}px)`;
+            }, 50);
+
+            setTimeout(() => {
+                spinBtn.disabled = false;
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }, 3200);
+        }
+    </script>
 </body>
 </html>
