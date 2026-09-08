@@ -471,6 +471,9 @@
         let inventory = [];
         let selectedCaseIndex = null;
 
+        // Адрес твоего бэкенда на Render
+        const BACKEND_URL = 'https://brainup-up.onrender.com';
+
         // --- СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ ---
         function loadData() {
             const savedBal = localStorage.getItem('brainup_balance');
@@ -556,7 +559,6 @@
             document.getElementById('promoInput').value = '';
         }
 
-        // Подсчет монет при вводе кастомных звёзд
         function calculateCustomCoins() {
             const inputVal = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
             const baseCoins = inputVal * 2;
@@ -569,22 +571,40 @@
             document.getElementById('starsCalcPreview').innerText = text;
         }
 
-        // Исправленная оплата без раздражающего системного алерта
-        function buyCustomStars() {
+        // Подключение инвойсов Telegram Stars через бэкенд
+        async function buyCustomStars() {
             const starsCount = parseInt(document.getElementById('customStarsInput').value, 10);
             if (!starsCount || starsCount <= 0) {
                 showWinModal("⚠️", "Укажите корректное кол-во звёзд", 0, "ОШИБКА");
                 return;
             }
 
-            const baseCoins = starsCount * 2;
-            const finalCoins = Math.floor(baseCoins * activePromoBonus);
-
-            if (tg && tg.openInvoice) {
-                // Место для подключения реального бэкенда инвойсов Telegram
-                showWinModal("⭐", "Для работы оплаты подключите бэкенд к tg.openInvoice!", 0, "ИНФО");
-            } else {
+            if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
                 showWinModal("⭐", "Для оплаты за звёзды откройте приложение через Telegram!", 0, "ИНФО");
+                return;
+            }
+
+            const userId = tg.initDataUnsafe.user.id;
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/create-invoice`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, stars: starsCount })
+                });
+
+                const data = await response.json();
+                if (data.invoiceLink) {
+                    tg.openInvoice(data.invoiceLink, (status) => {
+                        if (status === 'paid') {
+                            showWinModal("🎉", "Оплата прошла успешно! Монеты зачислены.", 0, "УСПЕХ");
+                        }
+                    });
+                } else {
+                    showWinModal("❌", "Не удалось создать инвойс на сервере", 0, "ОШИБКА");
+                }
+            } catch (e) {
+                showWinModal("❌", "Ошибка соединения с сервером", 0, "ОШИБКА");
             }
         }
 
