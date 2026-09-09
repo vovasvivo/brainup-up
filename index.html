@@ -60,21 +60,22 @@
         /* Вкладки */
         .tabs {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 20px;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 10px;
+            padding: 10px 4px;
             background: var(--card-bg);
             border: 1px solid rgba(255,255,255,0.05);
             color: #9ca3af;
             border-radius: 12px;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 11px;
             cursor: pointer;
             transition: all 0.2s;
+            text-align: center;
         }
 
         .tab-btn.active {
@@ -377,9 +378,82 @@
             text-align: center;
             border: 1px solid rgba(255,255,255,0.05);
             font-size: 11px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .inv-card.selected {
+            border-color: var(--accent-pink);
+            background: #1f1b3a;
         }
 
         .inv-icon { font-size: 26px; margin-bottom: 4px; }
+
+        /* Стили для Апгрейдера */
+        .upgrader-box {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .multiplier-selector {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin: 12px 0;
+        }
+        .mult-btn {
+            background: #0d0e15;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .mult-btn.active {
+            background: var(--accent-pink);
+            border-color: transparent;
+        }
+        .upgrade-preview-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .upgrade-item-slot {
+            width: 90px;
+            height: 100px;
+            background: #0d0e15;
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        .upgrade-item-slot.filled {
+            border: 2px solid var(--accent-cyan);
+            border-style: solid;
+        }
+        .upgrade-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: none;
+            color: black;
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+        .upgrade-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -393,6 +467,7 @@
     <!-- Вкладки -->
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('cases', event)">📦 Кейсы</button>
+        <button class="tab-btn" onclick="switchTab('upgrader', event)">⚡ Апгрейд</button>
         <button class="tab-btn" onclick="switchTab('deposit', event)">⭐ Звёзды</button>
         <button class="tab-btn" onclick="switchTab('inventory', event)">🎒 Инвентарь</button>
     </div>
@@ -417,7 +492,42 @@
         <div class="cases-grid" id="cases-list"></div>
     </div>
 
-    <!-- ВКЛАДКА 2: ПОПОЛНЕНИЕ И ПРОМОКОДЫ -->
+    <!-- ВКЛАДКА 2: АПГРЕЙДЕР -->
+    <div id="upgrader-page" class="page">
+        <div class="upgrader-box">
+            <h4 style="margin-top:0; margin-bottom:5px;">⚡ Апгрейд предметов</h4>
+            <p style="font-size:12px; color:#888; margin-bottom:10px;">Выбери предмет из инвентаря и желаемый коэффициент победы</p>
+            
+            <div class="multiplier-selector">
+                <button class="mult-btn active" onclick="setMultiplier(1.5, this)">1.5x (~66%)</button>
+                <button class="mult-btn" onclick="setMultiplier(2, this)">2x (50%)</button>
+                <button class="mult-btn" onclick="setMultiplier(3, this)">3x (~33%)</button>
+                <button class="mult-btn" onclick="setMultiplier(5, this)">5x (20%)</button>
+            </div>
+
+            <div class="upgrade-preview-container">
+                <div class="upgrade-item-slot" id="upgradeSourceSlot">
+                    <span style="font-size:24px;">➕</span>
+                    <span style="font-size:10px; color:#888; margin-top:4px;">Твой предмет</span>
+                </div>
+                <div style="font-size: 20px; font-weight: bold; color: var(--accent-pink);">➔</div>
+                <div class="upgrade-item-slot filled" style="border-style: solid; border-color: var(--text-gold);">
+                    <span id="targetUpIcon" style="font-size:24px;">🎁</span>
+                    <span id="targetUpName" style="font-size:10px; color:var(--text-gold); margin-top:4px; font-weight:bold;">Выигрыш</span>
+                </div>
+            </div>
+
+            <div id="upgradeChanceText" style="font-size: 14px; font-weight: bold; color: var(--accent-cyan); margin-bottom: 12px;">Шанс успеха: 0%</div>
+            <button class="upgrade-btn" id="upgradeBtn" onclick="startUpgrade()" disabled>СДЕЛАТЬ АПГРЕЙД</button>
+        </div>
+
+        <h4 style="margin-top:0; margin-bottom:10px; font-size:13px; color:#aaa;">Выбери предмет для апгрейда:</h4>
+        <div class="inventory-grid" id="upgrader-inventory-list">
+            <div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пуст</div>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 3: ПОПОЛНЕНИЕ И ПРОМОКОДЫ -->
     <div id="deposit-page" class="page">
         <div class="deposit-card">
             <h4 style="margin-top:0; margin-bottom:10px;">🔑 Активация промокода</h4>
@@ -443,7 +553,7 @@
         </div>
     </div>
 
-    <!-- ВКЛАДКА 3: ИНВЕНТАРЬ -->
+    <!-- ВКЛАДКА 4: ИНВЕНТАРЬ -->
     <div id="inventory-page" class="page">
         <h4 style="margin-top:0; margin-bottom:15px;">Твои выбитые BrainRot'ы:</h4>
         <div class="inventory-grid" id="inventory-list">
@@ -471,7 +581,11 @@
         let inventory = [];
         let selectedCaseIndex = null;
 
-        // Адрес твоего бэкенда на Render
+        // Переменные для апгрейдера
+        let selectedUpgradeItemIndex = null;
+        let selectedMultiplier = 1.5;
+
+        // Адрес бэкенда на Render
         const BACKEND_URL = 'https://brainup-up.onrender.com';
 
         // --- СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ ---
@@ -486,6 +600,7 @@
 
             updateBalanceUI();
             renderInventory();
+            renderUpgraderInventory();
             calculateCustomCoins();
         }
 
@@ -534,6 +649,103 @@
             
             if (e && e.target) e.target.classList.add('active');
             document.getElementById(`${tab}-page`).classList.add('active');
+
+            if (tab === 'upgrader') {
+                renderUpgraderInventory();
+            }
+        }
+
+        // --- ЛОГИКА АПГРЕЙДЕРА ---
+        function setMultiplier(mult, btn) {
+            selectedMultiplier = mult;
+            document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateUpgradePreview();
+        }
+
+        function renderUpgraderInventory() {
+            const list = document.getElementById('upgrader-inventory-list');
+            if (!inventory || inventory.length === 0) {
+                list.innerHTML = '<div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пуст. Сначала выиграй что-нибудь!</div>';
+                return;
+            }
+            list.innerHTML = '';
+            inventory.slice().reverse().forEach((item, originalIndex) => {
+                const realIndex = inventory.length - 1 - originalIndex;
+                const card = document.createElement('div');
+                card.className = `inv-card ${selectedUpgradeItemIndex === realIndex ? 'selected' : ''}`;
+                card.onclick = () => selectItemForUpgrade(realIndex);
+                card.innerHTML = `
+                    <div class="inv-icon">${item.icon}</div>
+                    <div style="font-weight:bold;">${item.name}</div>
+                    <div style="color:var(--text-gold); font-size:10px; margin-top:2px;">${item.win} 🪙</div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function selectItemForUpgrade(index) {
+            selectedUpgradeItemIndex = index;
+            renderUpgraderInventory();
+            updateUpgradePreview();
+        }
+
+        function updateUpgradePreview() {
+            const sourceSlot = document.getElementById('upgradeSourceSlot');
+            const targetName = document.getElementById('targetUpName');
+            const targetIcon = document.getElementById('targetUpIcon');
+            const chanceText = document.getElementById('upgradeChanceText');
+            const btn = document.getElementById('upgradeBtn');
+
+            if (selectedUpgradeItemIndex === null || !inventory[selectedUpgradeItemIndex]) {
+                sourceSlot.innerHTML = `<span style="font-size:24px;">➕</span><span style="font-size:10px; color:#888; margin-top:4px;">Твой предмет</span>`;
+                sourceSlot.classList.remove('filled');
+                targetName.innerText = "Выигрыш";
+                targetIcon.innerText = "🎁";
+                chanceText.innerText = "Шанс успеха: 0%";
+                btn.disabled = true;
+                return;
+            }
+
+            const item = inventory[selectedUpgradeItemIndex];
+            sourceSlot.innerHTML = `<span style="font-size:24px;">${item.icon}</span><span style="font-size:10px; color:white; margin-top:4px; font-weight:bold;">${item.win} 🪙</span>`;
+            sourceSlot.classList.add('filled');
+
+            const targetVal = Math.floor(item.win * selectedMultiplier);
+            targetName.innerText = `${targetVal} 🪙`;
+            targetIcon.innerText = item.icon;
+
+            const chance = Math.round((1 / selectedMultiplier) * 100);
+            chanceText.innerText = `Шанс успеха: ${chance}%`;
+            btn.disabled = false;
+        }
+
+        function startUpgrade() {
+            if (selectedUpgradeItemIndex === null || !inventory[selectedUpgradeItemIndex]) return;
+
+            const item = inventory[selectedUpgradeItemIndex];
+            const targetVal = Math.floor(item.win * selectedMultiplier);
+            const chance = 1 / selectedMultiplier;
+
+            // Удаляем предмет из инвентаря (ставим на кон)
+            inventory.splice(selectedUpgradeItemIndex, 1);
+            selectedUpgradeItemIndex = null;
+
+            const success = Math.random() < chance;
+
+            if (success) {
+                inventory.push({ icon: "🔥", name: `Апгрейд x${selectedMultiplier}`, win: targetVal });
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                showWinModal("🎉", `Успешный апгрейд x${selectedMultiplier}!`, targetVal, "ПОБЕДА!");
+            } else {
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                showWinModal("💀", "Апгрейд не удался...", 0, "ПРОИГРЫШ");
+            }
+
+            saveData();
+            renderInventory();
+            renderUpgraderInventory();
+            updateUpgradePreview();
         }
 
         function applyPromo() {
@@ -571,7 +783,6 @@
             document.getElementById('starsCalcPreview').innerText = text;
         }
 
-        // Подключение инвойсов Telegram Stars через бэкенд
         async function buyCustomStars() {
             const starsCount = parseInt(document.getElementById('customStarsInput').value, 10);
             if (!starsCount || starsCount <= 0) {
@@ -631,19 +842,19 @@
             const track = document.getElementById('track');
             track.innerHTML = '';
             for (let i = 0; i < 40; i++) {
-                let dropVal;
-                if (i === 28 && targetWinVal !== null) {
-                    dropVal = targetWinVal;
-                } else {
-                    dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
+                  let dropVal;
+                  if (i === 28 && targetWinVal !== null) {
+                      dropVal = targetWinVal;
+                  } else {
+                      dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
                 }
 
                 const card = document.createElement('div');
                 card.className = 'drop-card';
                 card.innerHTML = `<span style="font-size:18px;">${c.icon}</span><span>${dropVal} 🪙</span>`;
                 track.appendChild(card);
-            }
-        }
+          }
+      }
 
         function spinCurrentCase() {
             if (selectedCaseIndex === null) return;
@@ -653,74 +864,75 @@
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
                 showWinModal("❌", "Недостаточно монет!", 0, "ОШИБКА");
                 return;
-            }
+          }
 
-            balance -= c.price;
-            updateBalanceUI();
-            saveData();
+          balance -= c.price;
+          updateBalanceUI();
+          saveData();
+          
+          const spinBtn = document.getElementById('spinBtn');
+          spinBtn.disabled = true;
+
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+          const winCoins = c.drops[Math.floor(Math.random() * c.drops.length)];
+          generateTrack(c, winCoins);
+
+          const track = document.getElementById('track');
+          track.style.transition = 'none';
+          track.style.transform = 'translateX(0px)';
+
+          const cardWidth = 93;
+          const containerWidth = document.getElementById('rouletteContainer').offsetWidth;
+          const targetPos = (28 * cardWidth) - (containerWidth / 2) + (cardWidth / 2);
+
+          setTimeout(() => {
+              track.style.transition = 'transform 3s cubic-bezier(0.1, 1, 0.1, 1)';
+              track.style.transform = `translateX(-${targetPos}px)`;
+          }, 50);
+
+          setTimeout(() => {
+              spinBtn.disabled = false;
+              balance += winCoins;
+              updateBalanceUI();
+
+              inventory.push({ icon: c.icon, name: c.item, win: winCoins });
+              renderInventory();
+              renderUpgraderInventory();
+              saveData();
+
+              if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
             
-            const spinBtn = document.getElementById('spinBtn');
-            spinBtn.disabled = true;
-
-            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-
-            const winCoins = c.drops[Math.floor(Math.random() * c.drops.length)];
-            generateTrack(c, winCoins);
-
-            const track = document.getElementById('track');
-            track.style.transition = 'none';
-            track.style.transform = 'translateX(0px)';
-
-            const cardWidth = 93;
-            const containerWidth = document.getElementById('rouletteContainer').offsetWidth;
-            const targetPos = (28 * cardWidth) - (containerWidth / 2) + (cardWidth / 2);
-
-            setTimeout(() => {
-                track.style.transition = 'transform 3s cubic-bezier(0.1, 1, 0.1, 1)';
-                track.style.transform = `translateX(-${targetPos}px)`;
-            }, 50);
-
-            setTimeout(() => {
-                spinBtn.disabled = false;
-                balance += winCoins;
-                updateBalanceUI();
-
-                inventory.push({ icon: c.icon, name: c.item, win: winCoins });
-                renderInventory();
-                saveData();
-
-                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                
-                showWinModal(c.icon, c.item, winCoins, "ВЫИГРЫШ! 🎉");
-            }, 3200);
-        }
+              showWinModal(c.icon, c.item, winCoins, "ВЫИГРЫШ! 🎉");
+          }, 3200);
+      }
 
         function showWinModal(icon, name, coins, title = "ПОБЕДА! 🎉") {
             document.getElementById('winTitleHeader').innerText = title;
             document.getElementById('winIcon').innerText = icon;
             document.getElementById('winItemName').innerText = name;
-            
-            const coinsBox = document.getElementById('winCoinsText');
-            if (coins > 0) {
-                coinsBox.style.display = 'inline-block';
-                coinsBox.innerText = `+${coins.toLocaleString()} 🪙`;
-            } else {
-                coinsBox.style.display = 'none';
-            }
-
-            document.getElementById('winModal').style.display = 'flex';
+          
+          const coinsBox = document.getElementById('winCoinsText');
+          if (coins > 0) {
+              coinsBox.style.display = 'inline-block';
+              coinsBox.innerText = `+${coins.toLocaleString()} 🪙`;
+          } else {
+              coinsBox.style.display = 'none';
         }
+
+          document.getElementById('winModal').style.display = 'flex';
+      }
 
         function closeWinModal() {
-            document.getElementById('winModal').style.display = 'none';
-        }
+          document.getElementById('winModal').style.display = 'none';
+      }
 
         function renderInventory() {
             const list = document.getElementById('inventory-list');
             if (!inventory || inventory.length === 0) {
                 list.innerHTML = '<div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пока пуст. Открывай кейсы!</div>';
                 return;
-            }
+          }
             list.innerHTML = '';
             inventory.slice().reverse().forEach(item => {
                 const card = document.createElement('div');
@@ -731,8 +943,8 @@
                     <div style="color:var(--text-gold); font-size:10px; margin-top:2px;">+${item.win} 🪙</div>
                 `;
                 list.appendChild(card);
-            });
-        }
+          });
+      }
 
         renderCases();
         loadData();
