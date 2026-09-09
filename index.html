@@ -647,7 +647,7 @@
 
     <!-- ВКЛАДКА 4: ИНВЕНТАРЬ -->
     <div id="inventory-page" class="page">
-        <h4 style="margin-top:0; margin-bottom:15px;">Твои выбитые предметы:</h4>
+        <h4 style="margin-top:0; margin-bottom:15px;">Tвои выбитые предметы:</h4>
         <div class="inventory-grid" id="inventory-list">
             <div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пуст</div>
         </div>
@@ -732,14 +732,19 @@
             } catch (e) {}
         }
 
+        // Обновленные кейсы с жестким шансом окупаемости (~20-25%) и новыми дорогими кейсами
         const cases = [
-            { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [3, 5, 7, 9, 12, 20, 600], item: "Skibidi Toilet" },
-            { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 5, 7, 9, 15, 30, 600], item: "Chad Jawline" },
-            { id: 3, name: "Rizzler Box", price: 25, icon: "😏", drops: [5, 10, 15, 25, 40, 600], item: "W Rizz" },
-            { id: 4, name: "Fanum Tax", price: 35, icon: "🍕", drops: [5, 10, 20, 35, 50, 600], item: "Gyatt Pizza" },
-            { id: 5, name: "Ohio Mystery", price: 50, icon: "💀", drops: [10, 20, 30, 50, 80, 600], item: "Ohio Boss" },
-            { id: 6, name: "Sigma Grind", price: 75, icon: "🗿", drops: [15, 30, 50, 75, 120, 600], item: "Gigachad Status" },
-            { id: 7, name: "Mega Brainrot", price: 100, icon: "🚀", drops: [20, 40, 70, 100, 200, 1000], item: "Ultimate Brainrot" }
+            { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [2, 3, 4, 5, 6, 8, 25], item: "Skibidi Toilet" },
+            { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 4, 6, 8, 10, 12, 45], item: "Chad Jawline" },
+            { id: 3, name: "Rizzler Box", price: 25, icon: "😏", drops: [5, 8, 12, 15, 18, 22, 80], item: "W Rizz" },
+            { id: 4, name: "Fanum Tax", price: 35, icon: "🍕", drops: [8, 10, 15, 20, 25, 30, 120], item: "Gyatt Pizza" },
+            { id: 5, name: "Ohio Mystery", price: 50, icon: "💀", drops: [10, 15, 22, 30, 40, 45, 180], item: "Ohio Boss" },
+            { id: 6, name: "Sigma Grind", price: 75, icon: "🗿", drops: [15, 25, 35, 50, 65, 70, 280], item: "Gigachad Status" },
+            { id: 7, name: "Mega Brainrot", price: 100, icon: "🚀", drops: [20, 35, 50, 70, 90, 95, 400], item: "Ultimate Brainrot" },
+            { id: 8, name: "Cyberpunk Vault", price: 150, icon: "⚡", drops: [30, 50, 75, 100, 130, 140, 650], item: "Cyber Core" },
+            { id: 9, name: "Quantum Core", price: 250, icon: "🔮", drops: [50, 80, 120, 170, 220, 240, 1100], item: "Quantum Glitch" },
+            { id: 10, name: "Neon Syndicate", price: 400, icon: "💎", drops: [80, 130, 200, 280, 360, 380, 1800], item: "Neon Overlord" },
+            { id: 11, name: "God Mode", price: 750, icon: "👑", drops: [150, 250, 380, 520, 700, 720, 3500], item: "Divine Brainrot" }
         ];
 
         function loadData() {
@@ -949,7 +954,7 @@
             let targetDegree = 0;
 
             if (isSuccess) {
-                targetDegree = Math.floor(Math.random() * Math.max(1, chance - 10)) + 5;
+                targetDegree = Math.floor(Math.random() * Math.max(1, chance - 5)) + 2;
             } else {
                 const minRed = chance + 5;
                 const maxRed = 355;
@@ -1060,13 +1065,24 @@
 
             const track = document.getElementById('track');
             const winningIndex = 30;
-            const dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
+
+            // Жесткий шанс окупаемости (примерно 22% шанс выбить дроп дороже стоимости кейса)
+            let dropVal;
+            const isProfit = Math.random() < 0.22;
+            if (isProfit) {
+                // Берем максимальный элемент (окупающий)
+                dropVal = c.drops[c.drops.length - 1];
+            } else {
+                // Берем только убыточные элементы (все кроме последнего)
+                const losingDrops = c.drops.slice(0, c.drops.length - 1);
+                dropVal = losingDrops[Math.floor(Math.random() * losingDrops.length)];
+            }
             
             const cards = track.children;
             if (cards[winningIndex]) {
                 cards[winningIndex].innerHTML = `
                     <div style="font-size:28px;">${c.icon}</div>
-                    <div style="margin-top:4px; color:var(--text-gold);">${dropVal} 🪙</div>
+                    <div style="margin-top:4px; color:${dropVal >= c.price ? 'var(--text-gold)' : '#fff'};">${dropVal} 🪙</div>
                 `;
             }
 
