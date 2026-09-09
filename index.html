@@ -207,7 +207,7 @@
             font-weight: bold;
         }
 
-        /* Окно Рулетки */
+        /* Окно Рулетки Кейсов */
         .roulette-modal {
             background: var(--card-bg);
             border-radius: 20px;
@@ -407,35 +407,62 @@
             color: black;
         }
 
-        /* Стили для Апгрейдера */
+        /* СТИЛИ НОВОГО АПГРЕЙДЕРА С КОЛЕСОМ */
         .upgrader-box {
             background: var(--card-bg);
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 16px;
             border: 1px solid rgba(255,255,255,0.08);
             margin-bottom: 15px;
             text-align: center;
         }
+
         .multiplier-selector {
             display: flex;
             gap: 6px;
             justify-content: center;
-            margin: 12px 0;
+            margin: 10px 0;
+            flex-wrap: wrap;
         }
         .mult-btn {
             background: #0d0e15;
             border: 1px solid rgba(255,255,255,0.1);
             color: white;
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
         }
         .mult-btn.active {
             background: var(--accent-pink);
             border-color: transparent;
         }
+
+        .custom-mult-container {
+            display: flex;
+            align-items: center;
+            background: #0d0e15;
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 10px;
+            padding: 0 10px;
+            margin-bottom: 15px;
+            max-width: 220px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .custom-mult-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px 0;
+            outline: none;
+            text-align: center;
+        }
+
         .upgrade-preview-container {
             display: flex;
             justify-content: space-around;
@@ -460,6 +487,39 @@
             border: 2px solid var(--accent-cyan);
             border-style: solid;
         }
+
+        /* КОЛЕСО АПГРЕЙДЕРА */
+        .wheel-wrapper {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 15px auto;
+            display: none;
+        }
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid var(--accent-purple);
+            position: relative;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+            transition: transform 4s cubic-bezier(0.15, 0.85, 0.15, 1);
+            background: conic-gradient(#10b981 0deg 180deg, #ef4444 180deg 360deg);
+        }
+        .wheel-pointer {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 16px solid var(--text-gold);
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
         .upgrade-btn {
             width: 100%;
             padding: 14px;
@@ -514,17 +574,24 @@
     <!-- ВКЛАДКА 2: АПГРЕЙДЕР -->
     <div id="upgrader-page" class="page">
         <div class="upgrader-box">
-            <h4 style="margin-top:0; margin-bottom:5px;">⚡ Апгрейд предметов</h4>
-            <p style="font-size:12px; color:#888; margin-bottom:10px;">Выбери предмет из инвентаря и желаемый коэффициент победы</p>
+            <h4 style="margin-top:0; margin-bottom:5px;">⚡ Колесо Апгрейдов</h4>
+            <p style="font-size:12px; color:#888; margin-bottom:10px;">Выбери предмет и укажи желаемый множитель</p>
             
             <div class="multiplier-selector">
-                <button class="mult-btn active" onclick="setMultiplier(1.5, this)">1.5x (~66%)</button>
-                <button class="mult-btn" onclick="setMultiplier(2, this)">2x (50%)</button>
-                <button class="mult-btn" onclick="setMultiplier(3, this)">3x (~33%)</button>
-                <button class="mult-btn" onclick="setMultiplier(5, this)">5x (20%)</button>
+                <button class="mult-btn active" onclick="setMultiplier(1.5, this)">1.5x</button>
+                <button class="mult-btn" onclick="setMultiplier(2, this)">2x</button>
+                <button class="mult-btn" onclick="setMultiplier(3, this)">3x</button>
+                <button class="mult-btn" onclick="setMultiplier(5, this)">5x</button>
+                <button class="mult-btn" onclick="setMultiplier(10, this)">10x</button>
             </div>
 
-            <div class="upgrade-preview-container">
+            <div class="custom-mult-container">
+                <span style="font-size: 12px; color: #aaa; margin-right: 6px;">Свой X:</span>
+                <input type="number" id="customMultInput" class="custom-mult-input" value="2" step="0.1" min="1.1" max="100" oninput="onCustomMultiplierInput()">
+            </div>
+
+            <!-- Визуализаторы / Колесо -->
+            <div id="upgradePreviewBox" class="upgrade-preview-container">
                 <div class="upgrade-item-slot" id="upgradeSourceSlot">
                     <span style="font-size:24px;">➕</span>
                     <span style="font-size:10px; color:#888; margin-top:4px;">Твой предмет</span>
@@ -536,8 +603,13 @@
                 </div>
             </div>
 
+            <div class="wheel-wrapper" id="wheelWrapper">
+                <div class="wheel-pointer"></div>
+                <div class="wheel" id="fortuneWheel"></div>
+            </div>
+
             <div id="upgradeChanceText" style="font-size: 14px; font-weight: bold; color: var(--accent-cyan); margin-bottom: 12px;">Шанс успеха: 0%</div>
-            <button class="upgrade-btn" id="upgradeBtn" onclick="startUpgrade()" disabled>СДЕЛАТЬ АПГРЕЙД</button>
+            <button class="upgrade-btn" id="upgradeBtn" onclick="startUpgradeWheel()" disabled>КРУТИТЬ КОЛЕСО</button>
         </div>
 
         <h4 style="margin-top:0; margin-bottom:10px; font-size:13px; color:#aaa;">Выбери предмет для апгрейда:</h4>
@@ -600,13 +672,61 @@
         let inventory = [];
         let selectedCaseIndex = null;
         let isSpinning = false;
-        let pendingReward = null; // Временное хранение предмета до закрытия модалки
+        let pendingReward = null;
 
         // Переменные для апгрейдера
         let selectedUpgradeItemIndex = null;
-        let selectedMultiplier = 1.5;
+        let selectedMultiplier = 2;
+        let isWheelSpinning = false;
 
-        // Адрес бэкенда на Render
+        // Звуковой движок (Web Audio API)
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'tick') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'win') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.setValueAtTime(450, now + 0.1);
+                    osc.frequency.setValueAtTime(600, now + 0.2);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                } else if (type === 'lose') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch (e) {}
+        }
+
         const BACKEND_URL = 'https://brainup-up.onrender.com';
 
         const cases = [
@@ -622,7 +742,6 @@
             { id: 10, name: "Supreme BrainRot", price: 500, icon: "👑", drops: [100, 200, 350, 500, 800, 2500], item: "Golden Skibidi God" }
         ];
 
-        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ---
         function loadData() {
             const savedBal = localStorage.getItem('brainup_balance');
             const savedInv = localStorage.getItem('brainup_inventory');
@@ -681,7 +800,7 @@
             }
         }
 
-        // --- ИНВЕНТАРЬ И ПРОДАЖА ПРЕДМЕТОВ ---
+        // --- ИНВЕНТАРЬ И ПРОДАЖА ---
         function renderInventory() {
             const list = document.getElementById('inventory-list');
             if (!inventory || inventory.length === 0) {
@@ -719,12 +838,22 @@
             if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
 
-        // --- ЛОГИКА АПГРЕЙДЕРА ---
+        // --- НОВАЯ СИСТЕМА АПГРЕЙДЕРА С КОЛЕСОМ ---
         function setMultiplier(mult, btn) {
             selectedMultiplier = mult;
+            document.getElementById('customMultInput').value = mult;
             document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            if (btn) btn.classList.add('active');
             updateUpgradePreview();
+        }
+
+        function onCustomMultiplierInput() {
+            const val = parseFloat(document.getElementById('customMultInput').value);
+            if (!isNaN(val) && val >= 1.1) {
+                selectedMultiplier = val;
+                document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
+                updateUpgradePreview();
+            }
         }
 
         function renderUpgraderInventory() {
@@ -734,6 +863,7 @@
                 return;
             }
             list.innerHTML = '';
+            inventory.slice().reverse().fold = true;
             inventory.slice().reverse().forEach((item, originalIndex) => {
                 const realIndex = inventory.length - 1 - originalIndex;
                 const card = document.createElement('div');
@@ -749,9 +879,27 @@
         }
 
         function selectItemForUpgrade(index) {
+            if (isWheelSpinning) return;
             selectedUpgradeItemIndex = index;
             renderUpgraderInventory();
             updateUpgradePreview();
+        }
+
+        function getVisualChance(mult) {
+            // Визуальный шанс по формуле шанса честного колеса: 1 / mult * 100%
+            return Math.max(1, Math.min(99, Math.round((1 / mult) * 100)));
+        }
+
+        function getRealChance(visualChance) {
+            // Подкрутка шансов согласно твоему заданию
+            if (visualChance >= 70) return 65; // Визуально ~75 (если mult=1.33 или близко) -> реальный 65
+            if (visualChance >= 48 && visualChance <= 52) return 50; // 50% остается 50%
+            if (visualChance >= 28 && visualChance <= 32) return 15; // Визуально 30% -> реальный 15%
+            if (visualChance >= 8 && visualChance <= 12) return 5;  // Визуально 10% -> реальный 5%
+            if (visualChance <= 2) return 0.5; // Визуально 1% -> реальный 0.5%
+            
+            // Плавная пропорция для промежуточных значений
+            return visualChance * 0.5;
         }
 
         function updateUpgradePreview() {
@@ -760,6 +908,7 @@
             const targetIcon = document.getElementById('targetUpIcon');
             const chanceText = document.getElementById('upgradeChanceText');
             const btn = document.getElementById('upgradeBtn');
+            const wheel = document.getElementById('fortuneWheel');
 
             if (selectedUpgradeItemIndex === null || !inventory[selectedUpgradeItemIndex]) {
                 sourceSlot.innerHTML = `<span style="font-size:24px;">➕</span><span style="font-size:10px; color:#888; margin-top:4px;">Твой предмет</span>`;
@@ -779,39 +928,94 @@
             targetName.innerText = `${targetVal} 🪙`;
             targetIcon.innerText = item.icon;
 
-            const chance = Math.round((1 / selectedMultiplier) * 100);
-            chanceText.innerText = `Шанс успеха: ${chance}%`;
+            const visualChance = getVisualChance(selectedMultiplier);
+            chanceText.innerText = `Шанс успеха: ${visualChance}%`;
+
+            // Обновляем визуальный сектор колеса (зеленая зона под визуальный шанс)
+            wheel.style.background = `conic-gradient(#10b981 0deg ${visualChance * 3.6}deg, #ef4444 ${visualChance * 3.6}deg 360deg)`;
             btn.disabled = false;
         }
 
-        function startUpgrade() {
-            if (selectedUpgradeItemIndex === null || !inventory[selectedUpgradeItemIndex]) return;
+        function startUpgradeWheel() {
+            if (selectedUpgradeItemIndex === null || !inventory[selectedUpgradeItemIndex] || isWheelSpinning) return;
 
             const item = inventory[selectedUpgradeItemIndex];
             const targetVal = Math.floor(item.win * selectedMultiplier);
-            const chance = 1 / selectedMultiplier;
+            const visualChance = getVisualChance(selectedMultiplier);
+            const realChance = getRealChance(visualChance);
 
-            // Удаляем исходный предмет со стана апгрейдера
+            // Удаляем предмет из инвентаря на время крутки
             inventory.splice(selectedUpgradeItemIndex, 1);
             selectedUpgradeItemIndex = null;
-
-            const success = Math.random() < chance;
-
-            if (success) {
-                // Создаем выигранный брейнрот х2/х3/х5 в инвентаре
-                pendingReward = { icon: item.icon, name: `Апгрейд x${selectedMultiplier}`, win: targetVal };
-                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                showWinModal("🎉", `Успешный апгрейд x${selectedMultiplier}!`, targetVal, "ПОБЕДА!");
-            } else {
-                pendingReward = null;
-                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-                showWinModal("💀", "Апгрейд не удался...", 0, "ПРОИГРЫШ");
-            }
-
-            saveData();
-            renderInventory();
             renderUpgraderInventory();
             updateUpgradePreview();
+
+            isWheelSpinning = true;
+            document.getElementById('upgradeBtn').disabled = true;
+            document.getElementById('wheelWrapper').style.display = 'block';
+            document.getElementById('upgradePreviewBox').style.display = 'none';
+
+            const wheel = document.getElementById('fortuneWheel');
+            
+            // Розыгрыш с учетом подкрутки (realChance)
+            const success = Math.random() * 100 < realChance;
+
+            // Расчет угла остановки колеса
+            // Зеленый сектор идет от 0 до visualChance*3.6 градусов
+            let targetAngle;
+            const fullSpins = 360 * 5; // 5 полных оборотов
+
+            if (success) {
+                // Попадаем внутрь зеленого сектора (с отступом от границ для красоты)
+                const safeZone = visualChance * 3.6;
+                targetAngle = fullSpins + (Math.random() * (safeZone - 20) + 10);
+            } else {
+                // Попадаем в красный сектор
+                const redZoneStart = visualChance * 3.6 + 10;
+                const redZoneSpan = 360 - redZoneStart - 20;
+                targetAngle = fullSpins + redZoneStart + (Math.random() * redZoneSpan);
+            }
+
+            wheel.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
+            wheel.style.transform = `rotate(${targetAngle}deg)`;
+
+            // Звуки тиков при вращении
+            let tickCount = 0;
+            const tickInterval = setInterval(() => {
+                playSound('tick');
+                tickCount++;
+                if (tickCount > 25) clearInterval(tickInterval);
+            }, 140);
+
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            setTimeout(() => {
+                clearInterval(tickInterval);
+                isWheelSpinning = false;
+                document.getElementById('wheelWrapper').style.display = 'none';
+                document.getElementById('upgradePreviewBox').style.display = 'flex';
+
+                // Сбрасываем трансформацию колеса без анимации для следующего раза
+                wheel.style.transition = 'none';
+                wheel.style.transform = 'rotate(0deg)';
+
+                if (success) {
+                    playSound('win');
+                    pendingReward = { icon: item.icon, name: `Апгрейд x${selectedMultiplier}`, win: targetVal };
+                    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    showWinModal("🎉", `Успешный апгрейд x${selectedMultiplier}!`, targetVal, "ПОБЕДА!");
+                } else {
+                    playSound('lose');
+                    pendingReward = null;
+                    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                    showWinModal("💀", "Апгрейд не удался...", 0, "ПРОИГРЫШ");
+                }
+
+                saveData();
+                renderInventory();
+                renderUpgraderInventory();
+                updateUpgradePreview();
+            }, 4100);
         }
 
         // --- ПРОМОКОДЫ И ЗВЁЗДЫ ---
@@ -886,7 +1090,7 @@
             }
         }
 
-        // --- РУЛЕТКА И ОТКРЫТИЕ КЕЙСОВ ---
+        // --- РУЛЕТКА КЕЙСОВ ---
         function openCaseView(index) {
             selectedCaseIndex = index;
             const c = cases[index];
@@ -911,7 +1115,6 @@
             const track = document.getElementById('track');
             track.innerHTML = '';
             
-            // Генерируем ленту из 40 элементов, где победный элемент жестко ставится на позицию №28
             for (let i = 0; i < 40; i++) {
                 let dropVal;
                 if (i === 28 && winningVal !== null) {
@@ -936,7 +1139,6 @@
                 return;
             }
 
-            // Списываем стоимость кейса
             balance -= c.price;
             updateBalanceUI();
             saveData();
@@ -944,16 +1146,10 @@
             isSpinning = true;
             document.getElementById('spinBtn').disabled = true;
 
-            // Выбираем случайный выигрыш из доступных в кейсе
             const winningVal = c.drops[Math.floor(Math.random() * c.drops.length)];
-            
-            // Перегенерируем дорожку так, чтобы на 28-й позиции стоял точный выигрыш
             generateTrack(c, winningVal);
 
             const track = document.getElementById('track');
-            
-            // Расчет смещения: карточка шириной 85px + 8px отступы (margin 4px слева/справа) = 93px
-            // Центрируем 28-ю карточку относительно контейнера рулетки (ширина контейнера ~320px)
             const cardTotalWidth = 93;
             const containerWidth = document.getElementById('rouletteContainer').clientWidth;
             const targetPosition = (28 * cardTotalWidth) - (containerWidth / 2) + (cardTotalWidth / 2) + (Math.random() * 20 - 10);
@@ -961,29 +1157,35 @@
             track.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.15, 1)';
             track.style.transform = `translateX(-${targetPosition}px)`;
 
+            let tickCount = 0;
+            const tickInterval = setInterval(() => {
+                playSound('tick');
+                tickCount++;
+                if (tickCount > 20) clearInterval(tickInterval);
+            }, 150);
+
             if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             setTimeout(() => {
+                clearInterval(tickInterval);
                 isSpinning = false;
                 document.getElementById('spinBtn').disabled = false;
 
-                // Сохраняем выпавший предмет для отправки в инвентарь (а НЕ на баланс!)
                 pendingReward = {
                     icon: c.icon,
                     name: c.item,
                     win: winningVal
                 };
 
+                playSound('win');
                 showWinModal("🎉", c.item, winningVal, "ПОБЕДА!");
             }, 3600);
         }
 
-        // --- МОДАЛКА ВЫИГРЫША ---
         function showWinModal(icon, titleName, coinsVal, headerText) {
             document.getElementById('winTitleHeader').innerText = headerText;
             document.getElementById('winIcon').innerText = icon;
             document.getElementById('winItemName').innerText = titleName;
-            document.getElementById('winCoinsText.innerText', coinsVal > 0 ? `Ценность: +${coinsVal} 🪙` : "Ничего не получено");
             
             const coinsElem = document.getElementById('winCoinsText');
             if (coinsVal > 0) {
@@ -999,7 +1201,6 @@
         function closeWinModal() {
             document.getElementById('winModal').style.display = 'none';
 
-            // Если есть награда (выигрыш или успешный апгрейд) — добавляем её в инвентарь!
             if (pendingReward) {
                 inventory.push(pendingReward);
                 pendingReward = null;
@@ -1009,7 +1210,6 @@
             }
         }
 
-        // Запуск при загрузке
         window.onload = loadData;
     </script>
 </body>
