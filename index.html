@@ -407,7 +407,7 @@
             color: black;
         }
 
-        /* СТИЛИ НОВОГО АПГРЕЙДЕРА С КОЛЕСОМ */
+        /* СТИЛИ АПГРЕЙДЕРА С КОЛЕСОМ */
         .upgrader-box {
             background: var(--card-bg);
             border-radius: 20px;
@@ -727,8 +727,6 @@
             } catch (e) {}
         }
 
-        const BACKEND_URL = 'https://brainup-up.onrender.com';
-
         const cases = [
             { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [3, 5, 7, 9, 12, 20, 600], item: "Skibidi Toilet" },
             { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 5, 7, 9, 15, 30, 600], item: "Chad Jawline" },
@@ -838,7 +836,7 @@
             if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
 
-        // --- НОВАЯ СИСТЕМА АПГРЕЙДЕРА С КОЛЕСОМ ---
+        // --- СИСТЕМА АПГРЕЙДЕРА С КОЛЕСОМ ---
         function setMultiplier(mult, btn) {
             selectedMultiplier = mult;
             document.getElementById('customMultInput').value = mult;
@@ -863,7 +861,6 @@
                 return;
             }
             list.innerHTML = '';
-            inventory.slice().reverse().fold = true;
             inventory.slice().reverse().forEach((item, originalIndex) => {
                 const realIndex = inventory.length - 1 - originalIndex;
                 const card = document.createElement('div');
@@ -886,20 +883,11 @@
         }
 
         function getVisualChance(mult) {
-            // Визуальный шанс по формуле шанса честного колеса: 1 / mult * 100%
-            return Math.max(1, Math.min(99, Math.round((1 / mult) * 100)));
-        }
-
-        function getRealChance(visualChance) {
-            // Подкрутка шансов согласно твоему заданию
-            if (visualChance >= 70) return 65; // Визуально ~75 (если mult=1.33 или близко) -> реальный 65
-            if (visualChance >= 48 && visualChance <= 52) return 50; // 50% остается 50%
-            if (visualChance >= 28 && visualChance <= 32) return 15; // Визуально 30% -> реальный 15%
-            if (visualChance >= 8 && visualChance <= 12) return 5;  // Визуально 10% -> реальный 5%
-            if (visualChance <= 2) return 0.5; // Визуально 1% -> реальный 0.5%
-            
-            // Плавная пропорция для промежуточных значений
-            return visualChance * 0.5;
+            // Рассчитываем честный/визуальный шанс в зависимости от множителя (чем выше X, тем меньше шанс)
+            let chance = Math.floor(90 / mult);
+            if (chance < 5) chance = 5;
+            if (chance > 95) chance = 95;
+            return chance;
         }
 
         function updateUpgradePreview() {
@@ -907,225 +895,150 @@
             const targetName = document.getElementById('targetUpName');
             const targetIcon = document.getElementById('targetUpIcon');
             const chanceText = document.getElementById('upgradeChanceText');
-            const btn = document.getElementById('upgradeBtn');
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            const wheelWrapper = document.getElementById('wheelWrapper');
             const wheel = document.getElementById('fortuneWheel');
 
-            if (selectedUpgradeItemIndex === null || !inventory[selectedUpgradeItemIndex]) {
-                sourceSlot.innerHTML = `<span style="font-size:24px;">➕</span><span style="font-size:10px; color:#888; margin-top:4px;">Твой предмет</span>`;
-                sourceSlot.classList.remove('filled');
-                targetName.innerText = "Выигрыш";
-                targetIcon.innerText = "🎁";
-                chanceText.innerText = "Шанс успеха: 0%";
-                btn.disabled = true;
-                return;
+            if (selectedUpgradeItemIndex !== null && inventory[selectedUpgradeItemIndex]) {
+                const item = inventory[selectedUpgradeItemIndex];
+                sourceSlot.className = 'upgrade-item-slot filled';
+                sourceSlot.innerHTML = `
+                    <span style="font-size:26px;">${item.icon}</span>
+                    <span style="font-size:10px; color:#fff; margin-top:4px; font-weight:bold;">${item.win} 🪙</span>
+                `;
+
+                const targetValue = Math.round(item.win * selectedMultiplier);
+                targetName.innerText = `${targetValue} 🪙 (${selectedMultiplier}x)`;
+                targetIcon.innerText = '🎁';
+
+                const chance = getVisualChance(selectedMultiplier);
+                chanceText.innerText = `Шанс успеха: ${chance}%`;
+                
+                // Настройка секторов колеса (зелёный цвет под шанс, красный — остальное)
+                const deg = (chance / 100) * 360;
+                wheel.style.background = `conic-gradient(#10b981 0deg ${deg}deg, #ef4444 ${deg}deg 360deg)`;
+
+                wheelWrapper.style.display = 'block';
+                upgradeBtn.disabled = false;
+            } else {
+                sourceSlot.className = 'upgrade-item-slot';
+                sourceSlot.innerHTML = `
+                    <span style="font-size:24px;">➕</span>
+                    <span style="font-size:10px; color:#888; margin-top:4px;">Твой предмет</span>
+                `;
+                targetName.innerText = 'Выигрыш';
+                targetIcon.innerText = '🎁';
+                chanceText.innerText = 'Шанс успеха: 0%';
+                wheelWrapper.style.display = 'none';
+                upgradeBtn.disabled = true;
             }
-
-            const item = inventory[selectedUpgradeItemIndex];
-            sourceSlot.innerHTML = `<span style="font-size:24px;">${item.icon}</span><span style="font-size:10px; color:white; margin-top:4px; font-weight:bold;">${item.win} 🪙</span>`;
-            sourceSlot.classList.add('filled');
-
-            const targetVal = Math.floor(item.win * selectedMultiplier);
-            targetName.innerText = `${targetVal} 🪙`;
-            targetIcon.innerText = item.icon;
-
-            const visualChance = getVisualChance(selectedMultiplier);
-            chanceText.innerText = `Шанс успеха: ${visualChance}%`;
-
-            // Обновляем визуальный сектор колеса (зеленая зона под визуальный шанс)
-            wheel.style.background = `conic-gradient(#10b981 0deg ${visualChance * 3.6}deg, #ef4444 ${visualChance * 3.6}deg 360deg)`;
-            btn.disabled = false;
         }
 
         function startUpgradeWheel() {
-            if (selectedUpgradeItemIndex === null || !inventory[selectedUpgradeItemIndex] || isWheelSpinning) return;
-
+            if (isWheelSpinning || selectedUpgradeItemIndex === null) return;
             const item = inventory[selectedUpgradeItemIndex];
-            const targetVal = Math.floor(item.win * selectedMultiplier);
-            const visualChance = getVisualChance(selectedMultiplier);
-            const realChance = getRealChance(visualChance);
-
-            // Удаляем предмет из инвентаря на время крутки
-            inventory.splice(selectedUpgradeItemIndex, 1);
-            selectedUpgradeItemIndex = null;
-            renderUpgraderInventory();
-            updateUpgradePreview();
+            if (!item) return;
 
             isWheelSpinning = true;
             document.getElementById('upgradeBtn').disabled = true;
-            document.getElementById('wheelWrapper').style.display = 'block';
-            document.getElementById('upgradePreviewBox').style.display = 'none';
 
             const wheel = document.getElementById('fortuneWheel');
+            const chance = getVisualChance(selectedMultiplier);
+
+            // Определяем исход: победа или поражение на основе шанса
+            const isSuccess = Math.random() * 100 < chance;
+
+            // Генерируем случайное количество полных оборотов (от 4 до 7) плюс угол сектора
+            const extraRotations = 360 * (4 + Math.floor(Math.random() * 4));
             
-            // Розыгрыш с учетом подкрутки (realChance)
-            const success = Math.random() * 100 < realChance;
-
-            // Расчет угла остановки колеса
-            // Зеленый сектор идет от 0 до visualChance*3.6 градусов
-            let targetAngle;
-            const fullSpins = 360 * 5; // 5 полных оборотов
-
-            if (success) {
-                // Попадаем внутрь зеленого сектора (с отступом от границ для красоты)
-                const safeZone = visualChance * 3.6;
-                targetAngle = fullSpins + (Math.random() * (safeZone - 20) + 10);
+            let targetDegree = 0;
+            if (isSuccess) {
+                // Попадаем в зелёную зону (от 5 до chance - 5 градусов)
+                targetDegree = Math.floor(Math.random() * (chance - 10)) + 5;
             } else {
-                // Попадаем в красный сектор
-                const redZoneStart = visualChance * 3.6 + 10;
-                const redZoneSpan = 360 - redZoneStart - 20;
-                targetAngle = fullSpins + redZoneStart + (Math.random() * redZoneSpan);
+                // Попадаем в красную зону (от chance + 10 до 355 градусов)
+                targetDegree = Math.floor(Math.random() * (350 - (chance + 10))) + (chance + 10);
             }
+
+            // Колесо крутится по часовой стрелке, стрелка сверху (0 градусов). 
+            // Итоговый угол поворота инвертируем со знаком минус.
+            const totalRotation = extraRotations + (360 - targetDegree);
 
             wheel.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            wheel.style.transform = `rotate(${targetAngle}deg)`;
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
 
-            // Звуки тиков при вращении
-            let tickCount = 0;
-            const tickInterval = setInterval(() => {
-                playSound('tick');
-                tickCount++;
-                if (tickCount > 25) clearInterval(tickInterval);
-            }, 140);
-
-            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            playSound('tick');
 
             setTimeout(() => {
-                clearInterval(tickInterval);
                 isWheelSpinning = false;
-                document.getElementById('wheelWrapper').style.display = 'none';
-                document.getElementById('upgradePreviewBox').style.display = 'flex';
-
-                // Сбрасываем трансформацию колеса без анимации для следующего раза
+                // Сбрасываем трансформацию без анимации для будущих вращений
                 wheel.style.transition = 'none';
-                wheel.style.transform = 'rotate(0deg)';
+                wheel.style.transform = `rotate(${360 - targetDegree}deg)`;
 
-                if (success) {
+                if (isSuccess) {
                     playSound('win');
-                    pendingReward = { icon: item.icon, name: `Апгрейд x${selectedMultiplier}`, win: targetVal };
-                    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    showWinModal("🎉", `Успешный апгрейд x${selectedMultiplier}!`, targetVal, "ПОБЕДА!");
+                    const rewardValue = Math.round(item.win * selectedMultiplier);
+                    const reward = {
+                        name: `${selectedMultiplier}x Upgrade Reward`,
+                        icon: '💎',
+                        win: rewardValue
+                    };
+                    // Удаляем исходный предмет и добавляем новый улучшенный
+                    inventory.splice(selectedUpgradeItemIndex, 1);
+                    inventory.push(reward);
+                    selectedUpgradeItemIndex = null;
+                    saveData();
+                    renderInventory();
+                    renderUpgraderInventory();
+                    updateUpgradePreview();
+
+                    showWinModal(reward.icon, reward.name, reward.win, "УСПЕШНЫЙ АПГРЕЙД! ⚡");
                 } else {
                     playSound('lose');
-                    pendingReward = null;
-                    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-                    showWinModal("💀", "Апгрейд не удался...", 0, "ПРОИГРЫШ");
+                    // Удаляем сгоревший предмет
+                    inventory.splice(selectedUpgradeItemIndex, 1);
+                    selectedUpgradeItemIndex = null;
+                    saveData();
+                    renderInventory();
+                    renderUpgraderInventory();
+                    updateUpgradePreview();
+
+                    alert('К сожалению, апгрейд не удался. Предмет сгорел! 😢');
                 }
-
-                saveData();
-                renderInventory();
-                renderUpgraderInventory();
-                updateUpgradePreview();
-            }, 4100);
+            }, 4000);
         }
 
-        // --- ПРОМОКОДЫ И ЗВЁЗДЫ ---
-        function applyPromo() {
-            const code = document.getElementById('promoInput').value.trim().toUpperCase();
-            const status = document.getElementById('promo-status');
-
-            if (code === 'DEVADMIN') {
-                balance += 1000000;
-                updateBalanceUI();
-                saveData();
-                status.style.color = '#10b981';
-                status.innerText = "✅ Вы получили 1,000,000 монет!";
-            } else if (code === 'BRAINUP5') {
-                activePromoBonus = 1.05;
-                saveData();
-                status.style.color = '#10b981';
-                status.innerText = "✅ +5% бонус к пополнению активирован!";
-                calculateCustomCoins();
-            } else {
-                status.style.color = '#ef4444';
-                status.innerText = "❌ Неверный промокод";
-            }
-            document.getElementById('promoInput').value = '';
-        }
-
-        function calculateCustomCoins() {
-            const inputVal = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
-            const baseCoins = inputVal * 2;
-            const finalCoins = Math.floor(baseCoins * activePromoBonus);
-            
-            let text = `Ты получишь: ${finalCoins.toLocaleString()} 🪙`;
-            if (activePromoBonus > 1) {
-                text += ` (+5% бонус!)`;
-            }
-            document.getElementById('starsCalcPreview').innerText = text;
-        }
-
-        async function buyCustomStars() {
-            const starsCount = parseInt(document.getElementById('customStarsInput').value, 10);
-            if (!starsCount || starsCount <= 0) {
-                alert("Укажите корректное кол-во звёзд");
-                return;
-            }
-
-            if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                alert("Для оплаты за звёзды откройте приложение через Telegram!");
-                return;
-            }
-
-            const userId = tg.initDataUnsafe.user.id;
-
-            try {
-                const response = await fetch(`${BACKEND_URL}/create-invoice`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: userId, stars: starsCount })
-                });
-
-                const data = await response.json();
-                if (data.invoiceLink) {
-                    tg.openInvoice(data.invoiceLink, (status) => {
-                        if (status === 'paid') {
-                            alert("Оплата прошла успешно! Монеты зачислены.");
-                        }
-                    });
-                } else {
-                    alert("Не удалось создать инвойс на сервере");
-                }
-            } catch (e) {
-                alert("Ошибка соединения с сервером");
-            }
-        }
-
-        // --- РУЛЕТКА КЕЙСОВ ---
+        // --- ЛОГИКА ОТКРЫТИЯ КЕЙСОВ ---
         function openCaseView(index) {
             selectedCaseIndex = index;
             const c = cases[index];
-            document.getElementById('current-case-name').innerText = `${c.icon} ${c.name}`;
-            document.getElementById('spinBtn').innerText = `Открыть за ${c.price} 🪙`;
-            document.getElementById('spinBtn').disabled = false;
+            document.getElementById('current-case-name.innerText') || (document.getElementById('current-case-name').innerText = c.name);
             document.getElementById('active-case-view').style.display = 'block';
-            
-            const track = document.getElementById('track');
-            track.style.transition = 'none';
-            track.style.transform = 'translateX(0px)';
-            generateTrack(c);
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('cases-list').style.display = 'none';
+            setupRouletteTrack(c);
         }
 
         function closeCaseView() {
             document.getElementById('active-case-view').style.display = 'none';
+            document.getElementById('cases-list').style.display = 'grid';
+            selectedCaseIndex = null;
         }
 
-        function generateTrack(c, winningVal = null) {
+        function setupRouletteTrack(c) {
             const track = document.getElementById('track');
             track.innerHTML = '';
-            
-            for (let i = 0; i < 40; i++) {
-                let dropVal;
-                if (i === 28 && winningVal !== null) {
-                    dropVal = winningVal;
-                } else {
-                    dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
-                }
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
 
+            // Создаем начальный массив элементов рулетки
+            for (let i = 0; i < 40; i++) {
+                const dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
                 const card = document.createElement('div');
                 card.className = 'drop-card';
-                card.innerHTML = `<span style="font-size:18px;">${c.icon}</span><span>${dropVal} 🪙</span>`;
+                card.innerHTML = `
+                    <div style="font-size:28px;">${c.icon}</div>
+                    <div style="margin-top:4px;">${dropVal} 🪙</div>
+                `;
                 track.appendChild(card);
             }
         }
@@ -1135,7 +1048,7 @@
             const c = cases[selectedCaseIndex];
 
             if (balance < c.price) {
-                alert("Недостаточно монет на балансе! Продайте предметы или пополните баланс.");
+                alert('Недостаточно монет для открытия кейса!');
                 return;
             }
 
@@ -1146,70 +1059,112 @@
             isSpinning = true;
             document.getElementById('spinBtn').disabled = true;
 
-            const winningVal = c.drops[Math.floor(Math.random() * c.drops.length)];
-            generateTrack(c, winningVal);
-
             const track = document.getElementById('track');
-            const cardTotalWidth = 93;
+            
+            // Определяем выигрышный элемент (например, 30-й по счету)
+            const winningIndex = 30;
+            const dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
+            
+            // Подменяем карточку на победную заранее
+            const cards = track.children;
+            if (cards[winningIndex]) {
+                cards[winningIndex].innerHTML = `
+                    <div style="font-size:28px;">${c.icon}</div>
+                    <div style="margin-top:4px; color:var(--text-gold);">${dropVal} 🪙</div>
+                `;
+            }
+
+            // Вычисляем смещение для точного попадания под центральный указатель
+            const cardWidth = 93; // 85px ширина + 8px марргины (4*2)
             const containerWidth = document.getElementById('rouletteContainer').clientWidth;
-            const targetPosition = (28 * cardTotalWidth) - (containerWidth / 2) + (cardTotalWidth / 2) + (Math.random() * 20 - 10);
+            const offset = (winningIndex * cardWidth) - (containerWidth / 2) + (cardWidth / 2) + (Math.random() * 20 - 10);
 
-            track.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            track.style.transform = `translateX(-${targetPosition}px)`;
+            track.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
+            track.style.transform = `translateX(-${offset}px)`;
 
+            // Имитация звуков тиков прокрутки
             let tickCount = 0;
             const tickInterval = setInterval(() => {
                 playSound('tick');
                 tickCount++;
-                if (tickCount > 20) clearInterval(tickInterval);
-            }, 150);
-
-            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                if (tickCount > 25) clearInterval(tickInterval);
+            }, 120);
 
             setTimeout(() => {
-                clearInterval(tickInterval);
                 isSpinning = false;
                 document.getElementById('spinBtn').disabled = false;
+                playSound('win');
 
                 pendingReward = {
-                    icon: c.icon,
                     name: c.item,
-                    win: winningVal
+                    icon: c.icon,
+                    win: dropVal
                 };
 
-                playSound('win');
-                showWinModal("🎉", c.item, winningVal, "ПОБЕДА!");
-            }, 3600);
+                inventory.push(pendingReward);
+                saveData();
+                renderInventory();
+                renderUpgraderInventory();
+
+                showWinModal(c.icon, c.item, dropVal, "ПОБЕДА! 🎉");
+            }, 4000);
         }
 
-        function showWinModal(icon, titleName, coinsVal, headerText) {
-            document.getElementById('winTitleHeader').innerText = headerText;
+        function showWinModal(icon, name, coins, titleText) {
+            document.getElementById('winTitleHeader').innerText = titleText;
             document.getElementById('winIcon').innerText = icon;
-            document.getElementById('winItemName').innerText = titleName;
-            
-            const coinsElem = document.getElementById('winCoinsText');
-            if (coinsVal > 0) {
-                coinsElem.style.display = 'inline-block';
-                coinsElem.innerText = `Номинал: ${coinsVal} 🪙`;
-            } else {
-                coinsElem.style.display = 'none';
-            }
-
+            document.getElementById('winItemName').innerText = name;
+            document.getElementById('winCoinsText').innerText = `+${coins} 🪙`;
             document.getElementById('winModal').style.display = 'flex';
         }
 
         function closeWinModal() {
             document.getElementById('winModal').style.display = 'none';
+        }
 
-            if (pendingReward) {
-                inventory.push(pendingReward);
-                pendingReward = null;
+        // --- ПРОМОКОДЫ И ЗВЁЗДЫ ---
+        function applyPromo() {
+            const code = document.getElementById('promoInput').value.trim().toUpperCase();
+            const status = document.getElementById('promo-status');
+
+            if (code === 'BRAIN' || code === 'START') {
+                balance += 50;
+                status.style.color = '#10b981';
+                status.innerText = 'Промокод активирован! +50 🪙';
+                updateBalanceUI();
                 saveData();
-                renderInventory();
-                renderUpgraderInventory();
+            } else {
+                status.style.color = '#ef4444';
+                status.innerText = 'Неверный или уже использованный промокод';
             }
         }
 
+        function calculateCustomCoins() {
+            const stars = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
+            const coins = stars * 2;
+            document.getElementById('starsCalcPreview').innerText = `Ты получишь: ${coins} 🪙`;
+        }
+
+        function buyCustomStars() {
+            const stars = parseInt(document.getElementById('customStarsInput').value, 10);
+            if (!stars || stars <= 0) {
+                alert('Введите корректное число звёзд');
+                return;
+            }
+
+            if (tg && tg.openInvoice) {
+                // Если запущено внутри Telegram — вызываем встроенный инвойс
+                // (здесь бэкенд должен создавать инвойс, для примера зачисляем локально)
+            }
+            
+            // Демо-зачисление для теста
+            balance += stars * 2;
+            updateBalanceUI();
+            saveData();
+            alert(`Успешно приобретено за ${stars} ⭐! Баланс пополнен.`);
+        }
+
+        // Запуск при загрузке страницы
         window.onload = loadData;
     </script>
 </body>
