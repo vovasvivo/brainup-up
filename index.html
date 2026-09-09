@@ -508,7 +508,7 @@
             width: 6px;
             height: 75px;
             background: transparent;
-            transform-origin: 50% 0%; /* Центр вращения сверху */
+            transform-origin: 50% 0%;
             transform: translate(-50%, 0%) rotate(0deg);
             z-index: 15;
             transition: transform 4s cubic-bezier(0.15, 0.85, 0.15, 1);
@@ -516,7 +516,7 @@
         .wheel-pointer-rotatable::before {
             content: '';
             position: absolute;
-            bottom: 0; /* Перевернули стрелку острием вверх */
+            bottom: 0;
             left: 50%;
             transform: translateX(-50%);
             border-left: 8px solid transparent;
@@ -738,7 +738,8 @@
             { id: 3, name: "Rizzler Box", price: 25, icon: "😏", drops: [5, 10, 15, 25, 40, 600], item: "W Rizz" },
             { id: 4, name: "Fanum Tax", price: 35, icon: "🍕", drops: [5, 10, 20, 35, 50, 600], item: "Gyatt Pizza" },
             { id: 5, name: "Ohio Mystery", price: 50, icon: "💀", drops: [10, 20, 30, 50, 80, 600], item: "Ohio Boss" },
-            { id: 6, name: "Sigma Grind", price: 75, icon: "🗿", drops: [15, 30, 50, 75, 120, 600], item: "Gigachad Status" }
+            { id: 6, name: "Sigma Grind", price: 75, icon: "🗿", drops: [15, 30, 50, 75, 120, 600], item: "Gigachad Status" },
+            { id: 7, name: "Mega Brainrot", price: 100, icon: "🚀", drops: [20, 40, 70, 100, 200, 1000], item: "Ultimate Brainrot" }
         ];
 
         function loadData() {
@@ -856,7 +857,12 @@
         }
 
         function getMultiplierForChance(chance) {
-            return +(2 - (chance / 100)).toFixed(1) || 1.5;
+            if (chance === 75) return 1.5;
+            if (chance === 50) return 2;
+            if (chance === 30) return 3;
+            if (chance === 10) return 10;
+            if (chance === 1) return 100;
+            return +(100 / chance).toFixed(1);
         }
 
         function renderUpgraderInventory() {
@@ -937,17 +943,14 @@
             const pointer = document.getElementById('wheelPointer');
             const chance = getUpgradeChance();
 
-            // Жесткая синхронизация результата с шансом
             const isSuccess = Math.random() * 100 < chance;
 
             const extraRotations = 360 * (5 + Math.floor(Math.random() * 3));
             let targetDegree = 0;
 
             if (isSuccess) {
-                // Попадаем строго в зеленую зону (от 5 до chance - 5 градусов)
                 targetDegree = Math.floor(Math.random() * Math.max(1, chance - 10)) + 5;
             } else {
-                // Попадаем строго в красную зону (от chance + 5 до 355 градусов)
                 const minRed = chance + 5;
                 const maxRed = 355;
                 if (minRed < maxRed) {
