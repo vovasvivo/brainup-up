@@ -732,7 +732,6 @@
             } catch (e) {}
         }
 
-        // Обновленные кейсы с жестким шансом окупаемости (~20-25%) и новыми дорогими кейсами
         const cases = [
             { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [2, 3, 4, 5, 6, 8, 25], item: "Skibidi Toilet" },
             { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 4, 6, 8, 10, 12, 45], item: "Chad Jawline" },
@@ -954,10 +953,13 @@
             let targetDegree = 0;
 
             if (isSuccess) {
-                targetDegree = Math.floor(Math.random() * Math.max(1, chance - 5)) + 2;
+                // Зеленая зона строго от 2 до (chance - 2) градусов
+                const maxGreen = Math.max(3, chance - 2);
+                targetDegree = Math.floor(Math.random() * (maxGreen - 2)) + 2;
             } else {
-                const minRed = chance + 5;
-                const maxRed = 355;
+                // Красная зона строго от (chance + 3) до 357 градусов
+                const minRed = Math.min(356, chance + 3);
+                const maxRed = 357;
                 if (minRed < maxRed) {
                     targetDegree = Math.floor(Math.random() * (maxRed - minRed)) + minRed;
                 } else {
@@ -1066,14 +1068,11 @@
             const track = document.getElementById('track');
             const winningIndex = 30;
 
-            // Жесткий шанс окупаемости (примерно 22% шанс выбить дроп дороже стоимости кейса)
             let dropVal;
             const isProfit = Math.random() < 0.22;
             if (isProfit) {
-                // Берем максимальный элемент (окупающий)
                 dropVal = c.drops[c.drops.length - 1];
             } else {
-                // Берем только убыточные элементы (все кроме последнего)
                 const losingDrops = c.drops.slice(0, c.drops.length - 1);
                 dropVal = losingDrops[Math.floor(Math.random() * losingDrops.length)];
             }
