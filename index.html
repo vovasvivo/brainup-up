@@ -278,7 +278,7 @@
         }
         .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* ОКНО ВЫИГРЫША */
+        /* ОКНО ВЫИГРЫША / ПРОИГРЫША */
         .win-overlay {
             position: fixed;
             top: 0;
@@ -414,7 +414,7 @@
 
         .multiplier-selector {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             justify-content: center;
             margin: 10px 0;
             flex-wrap: wrap;
@@ -423,11 +423,11 @@
             background: #0d0e15;
             border: 1px solid rgba(255,255,255,0.1);
             color: white;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
         }
         .mult-btn.active {
             background: var(--accent-pink);
@@ -484,7 +484,7 @@
             border-style: solid;
         }
 
-        /* КОЛЕСО АПГРЕЙДЕРА (СТАТИЧНОЕ С ВРАЩАЮЩЕЙСЯ СТРЕЛКОЙ) */
+        /* КОЛЕСО АПГРЕЙДЕРА */
         .wheel-wrapper {
             position: relative;
             width: 150px;
@@ -501,7 +501,6 @@
             box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
             background: conic-gradient(#10b981 0deg 180deg, #ef4444 180deg 360deg);
         }
-        /* Вращающийся указатель */
         .wheel-pointer-rotatable {
             position: absolute;
             top: 50%;
@@ -509,21 +508,21 @@
             width: 6px;
             height: 75px;
             background: transparent;
-            transform-origin: 50% 100%;
-            transform: translate(-50%, -100%) rotate(0deg);
+            transform-origin: 50% 0%; /* Центр вращения сверху */
+            transform: translate(-50%, 0%) rotate(0deg);
             z-index: 15;
             transition: transform 4s cubic-bezier(0.15, 0.85, 0.15, 1);
         }
         .wheel-pointer-rotatable::before {
             content: '';
             position: absolute;
-            top: 0;
+            bottom: 0; /* Перевернули стрелку острием вверх */
             left: 50%;
             transform: translateX(-50%);
             border-left: 8px solid transparent;
             border-right: 8px solid transparent;
-            border-bottom: 16px solid var(--text-gold);
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            border-top: 16px solid var(--text-gold);
+            filter: drop-shadow(0 -2px 4px rgba(0,0,0,0.5));
         }
 
         .upgrade-btn {
@@ -654,14 +653,14 @@
         </div>
     </div>
 
-    <!-- ОКНО ВЫИГРЫША -->
+    <!-- ОКНО ПОБЕДЫ / ПРОИГРЫША -->
     <div class="win-overlay" id="winModal">
         <div class="win-card">
             <div class="win-title" id="winTitleHeader">ПОБЕДА! 🎉</div>
             <div class="win-icon" id="winIcon">🚽</div>
             <div class="win-item-name" id="winItemName">Skibidi Toilet</div>
             <div class="win-coins" id="winCoinsText">+10 🪙</div>
-            <button class="claim-btn" onclick="closeWinModal()">ЗАБРАТЬ В ИНВЕНТАРЬ</button>
+            <button class="claim-btn" id="winModalBtn" onclick="closeWinModal()">ЗАБРАТЬ В ИНВЕНТАРЬ</button>
         </div>
     </div>
 
@@ -675,11 +674,10 @@
         let isSpinning = false;
 
         let selectedUpgradeItemIndex = null;
-        let currentUpgradeMode = 75; // 75, 50, 30, 10, 1, 'custom'
+        let currentUpgradeMode = 75; 
         let customChanceValue = 25;
         let isWheelSpinning = false;
 
-        // Продвинутый звуковой движок для качественного звука прокрутки и кейсов
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
@@ -694,7 +692,6 @@
                 const now = audioCtx.currentTime;
 
                 if (type === 'tick') {
-                    // Плотный щелчок для прокрутки рулеток/колеса
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sine';
@@ -707,7 +704,6 @@
                     osc.start(now);
                     osc.stop(now + 0.04);
                 } else if (type === 'win') {
-                    // Яркий победный аккорд
                     [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
                         const osc = audioCtx.createOscillator();
                         const gain = audioCtx.createGain();
@@ -721,7 +717,6 @@
                         osc.stop(now + i * 0.08 + 0.5);
                     });
                 } else if (type === 'lose') {
-                    // Грустный спуск
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sawtooth';
@@ -828,7 +823,6 @@
             renderUpgraderInventory();
         }
 
-        // --- ЛОГИКА АПГРЕЙДЕРА ПО ВАШИМ ПРОЦЕНТАМ ---
         function setUpgradeMode(mode, btn) {
             currentUpgradeMode = mode;
             document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
@@ -851,25 +845,18 @@
             updateUpgradePreview();
         }
 
-        function getVisualAndRealChance() {
-            let visual = 75;
-            let real = 70;
-
-            if (currentUpgradeMode === 75) { visual = 75; real = 70; }
-            else if (currentUpgradeMode === 50) { visual = 50; real = 50; }
-            else if (currentUpgradeMode === 30) { visual = 30; real = 20; }
-            else if (currentUpgradeMode === 10) { visual = 10; real = 5; }
-            else if (currentUpgradeMode === 1) { visual = 1; real = 0.5; }
-            else if (currentUpgradeMode === 'custom') {
-                visual = customChanceValue;
-                real = Math.max(0.1, customChanceValue - 5); // Своя подкрутка для custom
-            }
-            return { visual, real };
+        function getUpgradeChance() {
+            if (currentUpgradeMode === 75) return 75;
+            if (currentUpgradeMode === 50) return 50;
+            if (currentUpgradeMode === 30) return 30;
+            if (currentUpgradeMode === 10) return 10;
+            if (currentUpgradeMode === 1) return 1;
+            if (currentUpgradeMode === 'custom') return customChanceValue;
+            return 75;
         }
 
-        function getMultiplierForChance(visual) {
-            // Чем ниже шанс, тем выше коэффициент умножения награды
-            return +(2 - (visual / 100)).toFixed(1) || 1.5;
+        function getMultiplierForChance(chance) {
+            return +(2 - (chance / 100)).toFixed(1) || 1.5;
         }
 
         function renderUpgraderInventory() {
@@ -914,15 +901,14 @@
                     <span style="font-size:10px; color:#fff; margin-top:4px; font-weight:bold;">${item.win} 🪙</span>
                 `;
 
-                const { visual } = getVisualAndRealChance();
-                const mult = getMultiplierForChance(visual);
+                const chance = getUpgradeChance();
+                const mult = getMultiplierForChance(chance);
                 const targetValue = Math.round(item.win * mult);
 
                 targetName.innerText = `${targetValue} 🪙 (${mult}x)`;
-                chanceText.innerText = `Шанс успеха: ${visual}%`;
+                chanceText.innerText = `Шанс успеха: ${chance}%`;
 
-                // Окрашиваем статичное колесо под визуальный процент
-                const deg = (visual / 100) * 360;
+                const deg = (chance / 100) * 360;
                 wheel.style.background = `conic-gradient(#10b981 0deg ${deg}deg, #ef4444 ${deg}deg 360deg)`;
 
                 wheelWrapper.style.display = 'block';
@@ -949,28 +935,33 @@
             document.getElementById('upgradeBtn').disabled = true;
 
             const pointer = document.getElementById('wheelPointer');
-            const { visual, real } = getVisualAndRealChance();
+            const chance = getUpgradeChance();
 
-            // Проверяем победу по РЕАЛЬНОМУ скрытому шансу
-            const isSuccess = Math.random() * 100 < real;
+            // Жесткая синхронизация результата с шансом
+            const isSuccess = Math.random() * 100 < chance;
 
             const extraRotations = 360 * (5 + Math.floor(Math.random() * 3));
             let targetDegree = 0;
 
             if (isSuccess) {
-                // Попадаем в зеленую зону (от 5 до визуального процента)
-                targetDegree = Math.floor(Math.random() * (visual - 10)) + 5;
+                // Попадаем строго в зеленую зону (от 5 до chance - 5 градусов)
+                targetDegree = Math.floor(Math.random() * Math.max(1, chance - 10)) + 5;
             } else {
-                // Попадаем в красную зону
-                targetDegree = Math.floor(Math.random() * (350 - (visual + 10))) + (visual + 10);
+                // Попадаем строго в красную зону (от chance + 5 до 355 градусов)
+                const minRed = chance + 5;
+                const maxRed = 355;
+                if (minRed < maxRed) {
+                    targetDegree = Math.floor(Math.random() * (maxRed - minRed)) + minRed;
+                } else {
+                    targetDegree = 355;
+                }
             }
 
             const totalRotation = extraRotations + targetDegree;
 
             pointer.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            pointer.style.transform = `translate(-50%, -100%) rotate(${totalRotation}deg)`;
+            pointer.style.transform = `translate(-50%, 0%) rotate(${totalRotation}deg)`;
 
-            // Тиканье при вращении стрелки
             let ticks = 0;
             const tickInterval = setInterval(() => {
                 playSound('tick');
@@ -981,14 +972,14 @@
             setTimeout(() => {
                 isWheelSpinning = false;
                 pointer.style.transition = 'none';
-                pointer.style.transform = `translate(-50%, -100%) rotate(${targetDegree}deg)`;
+                pointer.style.transform = `translate(-50%, 0%) rotate(${targetDegree}deg)`;
 
                 if (isSuccess) {
                     playSound('win');
-                    const mult = getMultiplierForChance(visual);
+                    const mult = getMultiplierForChance(chance);
                     const rewardValue = Math.round(item.win * mult);
                     const reward = {
-                        name: `Upgrade Reward (${mult}x)`,
+                        name: `Upgrade (${mult}x)`,
                         icon: '💎',
                         win: rewardValue
                     };
@@ -1000,7 +991,7 @@
                     renderUpgraderInventory();
                     updateUpgradePreview();
 
-                    showWinModal(reward.icon, reward.name, reward.win, "УСПЕШНЫЙ АПГРЕЙД! ⚡");
+                    showWinModal(reward.icon, reward.name, reward.win, "УСПЕШНЫЙ АПГРЕЙД! ⚡", true);
                 } else {
                     playSound('lose');
                     inventory.splice(selectedUpgradeItemIndex, 1);
@@ -1010,12 +1001,11 @@
                     renderUpgraderInventory();
                     updateUpgradePreview();
 
-                    alert('Апгрейд не удался. Предмет сгорел! 😢');
+                    showWinModal('😢', 'Предмет сгорел', item.win, "АПГРЕЙД НЕ УДАЛСЯ", false);
                 }
             }, 4000);
         }
 
-        // --- КЕЙСЫ ---
         function openCaseView(index) {
             selectedCaseIndex = index;
             const c = cases[index];
@@ -1054,7 +1044,7 @@
             const c = cases[selectedCaseIndex];
 
             if (balance < c.price) {
-                alert('Недостаточно монет!');
+                showWinModal('⚠️', 'Ошибка', 0, 'НЕДОСТАТОЧНО МОНЕТ', false);
                 return;
             }
 
@@ -1102,15 +1092,25 @@
                 renderInventory();
                 renderUpgraderInventory();
 
-                showWinModal(c.icon, c.item, dropVal, "ПОБЕДА! 🎉");
+                showWinModal(c.icon, c.item, dropVal, "ПОБЕДА! 🎉", true);
             }, 4000);
         }
 
-        function showWinModal(icon, name, coins, titleText) {
+        function showWinModal(icon, name, coins, titleText, isSuccess) {
             document.getElementById('winTitleHeader').innerText = titleText;
             document.getElementById('winIcon').innerText = icon;
             document.getElementById('winItemName').innerText = name;
-            document.getElementById('winCoinsText').innerText = `+${coins} 🪙`;
+            document.getElementById('winCoinsText').innerText = coins > 0 ? `+${coins} 🪙` : 'Минус предмет';
+            
+            const btn = document.getElementById('winModalBtn');
+            if (isSuccess) {
+                btn.innerText = "ЗАБРАТЬ В ИНВЕНТАРЬ";
+                btn.style.background = "linear-gradient(90deg, #10b981, #059669)";
+            } else {
+                btn.innerText = "ПОНЯТНО";
+                btn.style.background = "linear-gradient(90deg, #ef4444, #dc2626)";
+            }
+
             document.getElementById('winModal').style.display = 'flex';
         }
 
@@ -1144,7 +1144,7 @@
             balance += stars * 2;
             updateBalanceUI();
             saveData();
-            alert(`Успешно куплено за ${stars} ⭐!`);
+            showWinModal('⭐', 'Покупка звезд', stars * 2, 'УСПЕШНО!', true);
         }
 
         window.onload = loadData;
