@@ -245,7 +245,7 @@
             position: absolute;
             left: 0;
             top: 10px;
-            transition: transform 3s cubic-bezier(0.1, 1, 0.1, 1);
+            will-change: transform;
         }
 
         .drop-card {
@@ -277,7 +277,7 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
         }
-        .spin-btn:disabled { opacity: 0.5; }
+        .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* ВСПЛЫВАЮЩЕЕ ОКНО ВЫИГРЫША */
         .win-overlay {
@@ -380,6 +380,9 @@
             font-size: 11px;
             cursor: pointer;
             transition: border-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         .inv-card.selected {
             border-color: var(--accent-pink);
@@ -387,6 +390,22 @@
         }
 
         .inv-icon { font-size: 26px; margin-bottom: 4px; }
+        
+        .sell-item-btn {
+            margin-top: 6px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #10b981;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .sell-item-btn:hover {
+            background: #10b981;
+            color: black;
+        }
 
         /* Стили для Апгрейдера */
         .upgrader-box {
@@ -568,7 +587,7 @@
             <div class="win-icon" id="winIcon">🚽</div>
             <div class="win-item-name" id="winItemName">Skibidi Toilet</div>
             <div class="win-coins" id="winCoinsText">+10 🪙</div>
-            <button class="claim-btn" onclick="closeWinModal()">ЗАБРАТЬ</button>
+            <button class="claim-btn" onclick="closeWinModal()">ЗАБРАТЬ В ИНВЕНТАРЬ</button>
         </div>
     </div>
 
@@ -580,6 +599,8 @@
         let activePromoBonus = 1;
         let inventory = [];
         let selectedCaseIndex = null;
+        let isSpinning = false;
+        let pendingReward = null; // Временное хранение предмета до закрытия модалки
 
         // Переменные для апгрейдера
         let selectedUpgradeItemIndex = null;
@@ -588,7 +609,20 @@
         // Адрес бэкенда на Render
         const BACKEND_URL = 'https://brainup-up.onrender.com';
 
-        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ ---
+        const cases = [
+            { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [3, 5, 7, 9, 12, 20, 600], item: "Skibidi Toilet" },
+            { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 5, 7, 9, 15, 30, 600], item: "Chad Jawline" },
+            { id: 3, name: "Rizzler Box", price: 25, icon: "😏", drops: [5, 10, 15, 25, 40, 600], item: "W Rizz" },
+            { id: 4, name: "Fanum Tax", price: 35, icon: "🍕", drops: [5, 10, 20, 35, 50, 600], item: "Gyatt Pizza" },
+            { id: 5, name: "Ohio Mystery", price: 50, icon: "💀", drops: [10, 20, 30, 50, 80, 600], item: "Ohio Boss" },
+            { id: 6, name: "Sigma Grind", price: 75, icon: "🗿", drops: [15, 30, 50, 75, 120, 600], item: "Gigachad Status" },
+            { id: 7, name: "Grimace Shake", price: 100, icon: "🥤", drops: [20, 40, 70, 100, 150, 600], item: "Sus Purple Shake" },
+            { id: 8, name: "Kai Cenat Vault", price: 150, icon: "🔥", drops: [30, 60, 100, 150, 250, 800], item: "AMP Setup" },
+            { id: 9, name: "Goofy Ahh Crate", price: 250, icon: "🤪", drops: [50, 100, 180, 250, 400, 1000], item: "Quandale Dingle" },
+            { id: 10, name: "Supreme BrainRot", price: 500, icon: "👑", drops: [100, 200, 350, 500, 800, 2500], item: "Golden Skibidi God" }
+        ];
+
+        // --- СОХРАНЕНИЕ И ЗАГРУЗКА ---
         function loadData() {
             const savedBal = localStorage.getItem('brainup_balance');
             const savedInv = localStorage.getItem('brainup_inventory');
@@ -599,6 +633,7 @@
             if (savedBonus !== null) activePromoBonus = parseFloat(savedBonus);
 
             updateBalanceUI();
+            renderCases();
             renderInventory();
             renderUpgraderInventory();
             calculateCustomCoins();
@@ -613,19 +648,6 @@
         function updateBalanceUI() {
             document.getElementById('bal').innerText = balance.toLocaleString();
         }
-
-        const cases = [
-            { id: 1, name: "Skibidi Starter", price: 9, icon: "🚽", drops: [3, 5, 7, 9, 12, 20, 600], item: "Skibidi Toilet" },
-            { id: 2, name: "Mewing Pass", price: 15, icon: "🤫", drops: [3, 5, 7, 9, 15, 30, 600], item: "Chad Jawline" },
-            { id: 3, name: "Rizzler Box", price: 25, icon: "😏", drops: [5, 10, 15, 25, 40, 600], item: "W Rizz" },
-            { id: 4, name: "Fanum Tax", price: 35, icon: "🍕", drops: [5, 10, 20, 35, 50, 600], item: "Gyatt Pizza" },
-            { id: 5, name: "Ohio Mystery", price: 50, icon: "💀", drops: [10, 20, 30, 50, 80, 600], item: "Ohio Boss" },
-            { id: 6, name: "Sigma Grind", price: 75, icon: "🗿", drops: [15, 30, 50, 75, 120, 600], item: "Gigachad Status" },
-            { id: 7, name: "Grimace Shake", price: 100, icon: "🥤", drops: [20, 40, 70, 100, 150, 600], item: "Sus Purple Shake" },
-            { id: 8, name: "Kai Cenat Vault", price: 150, icon: "🔥", drops: [30, 60, 100, 150, 250, 800], item: "AMP Setup" },
-            { id: 9, name: "Goofy Ahh Crate", price: 250, icon: "🤪", drops: [50, 100, 180, 250, 400, 1000], item: "Quandale Dingle" },
-            { id: 10, name: "Supreme BrainRot", price: 500, icon: "👑", drops: [100, 200, 350, 500, 800, 2500], item: "Golden Skibidi God" }
-        ];
 
         function renderCases() {
             const list = document.getElementById('cases-list');
@@ -652,7 +674,49 @@
 
             if (tab === 'upgrader') {
                 renderUpgraderInventory();
+                updateUpgradePreview();
             }
+            if (tab === 'inventory') {
+                renderInventory();
+            }
+        }
+
+        // --- ИНВЕНТАРЬ И ПРОДАЖА ПРЕДМЕТОВ ---
+        function renderInventory() {
+            const list = document.getElementById('inventory-list');
+            if (!inventory || inventory.length === 0) {
+                list.innerHTML = '<div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пока пуст. Открывай кейсы!</div>';
+                return;
+            }
+            list.innerHTML = '';
+            inventory.slice().reverse().forEach((item, originalIndex) => {
+                const realIndex = inventory.length - 1 - originalIndex;
+                const card = document.createElement('div');
+                card.className = 'inv-card';
+                card.innerHTML = `
+                    <div>
+                        <div class="inv-icon">${item.icon}</div>
+                        <div style="font-weight:bold; font-size:11px;">${item.name}</div>
+                        <div style="color:var(--text-gold); font-size:10px; margin-top:2px;">${item.win} 🪙</div>
+                    </div>
+                    <button class="sell-item-btn" onclick="event.stopPropagation(); sellItem(${realIndex})">ПРОДАТЬ</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function sellItem(index) {
+            if (index < 0 || index >= inventory.length) return;
+            const item = inventory[index];
+            balance += item.win;
+            inventory.splice(index, 1);
+            
+            saveData();
+            updateBalanceUI();
+            renderInventory();
+            renderUpgraderInventory();
+
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
 
         // --- ЛОГИКА АПГРЕЙДЕРА ---
@@ -727,17 +791,19 @@
             const targetVal = Math.floor(item.win * selectedMultiplier);
             const chance = 1 / selectedMultiplier;
 
-            // Удаляем предмет из инвентаря (ставим на кон)
+            // Удаляем исходный предмет со стана апгрейдера
             inventory.splice(selectedUpgradeItemIndex, 1);
             selectedUpgradeItemIndex = null;
 
             const success = Math.random() < chance;
 
             if (success) {
-                inventory.push({ icon: "🔥", name: `Апгрейд x${selectedMultiplier}`, win: targetVal });
+                // Создаем выигранный брейнрот х2/х3/х5 в инвентаре
+                pendingReward = { icon: item.icon, name: `Апгрейд x${selectedMultiplier}`, win: targetVal };
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 showWinModal("🎉", `Успешный апгрейд x${selectedMultiplier}!`, targetVal, "ПОБЕДА!");
             } else {
+                pendingReward = null;
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
                 showWinModal("💀", "Апгрейд не удался...", 0, "ПРОИГРЫШ");
             }
@@ -748,6 +814,7 @@
             updateUpgradePreview();
         }
 
+        // --- ПРОМОКОДЫ И ЗВЁЗДЫ ---
         function applyPromo() {
             const code = document.getElementById('promoInput').value.trim().toUpperCase();
             const status = document.getElementById('promo-status');
@@ -786,12 +853,12 @@
         async function buyCustomStars() {
             const starsCount = parseInt(document.getElementById('customStarsInput').value, 10);
             if (!starsCount || starsCount <= 0) {
-                showWinModal("⚠️", "Укажите корректное кол-во звёзд", 0, "ОШИБКА");
+                alert("Укажите корректное кол-во звёзд");
                 return;
             }
 
             if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-                showWinModal("⭐", "Для оплаты за звёзды откройте приложение через Telegram!", 0, "ИНФО");
+                alert("Для оплаты за звёзды откройте приложение через Telegram!");
                 return;
             }
 
@@ -808,22 +875,24 @@
                 if (data.invoiceLink) {
                     tg.openInvoice(data.invoiceLink, (status) => {
                         if (status === 'paid') {
-                            showWinModal("🎉", "Оплата прошла успешно! Монеты зачислены.", 0, "УСПЕХ");
+                            alert("Оплата прошла успешно! Монеты зачислены.");
                         }
                     });
                 } else {
-                    showWinModal("❌", "Не удалось создать инвойс на сервере", 0, "ОШИБКА");
+                    alert("Не удалось создать инвойс на сервере");
                 }
             } catch (e) {
-                showWinModal("❌", "Ошибка соединения с сервером", 0, "ОШИБКА");
+                alert("Ошибка соединения с сервером");
             }
         }
 
+        // --- РУЛЕТКА И ОТКРЫТИЕ КЕЙСОВ ---
         function openCaseView(index) {
             selectedCaseIndex = index;
             const c = cases[index];
             document.getElementById('current-case-name').innerText = `${c.icon} ${c.name}`;
             document.getElementById('spinBtn').innerText = `Открыть за ${c.price} 🪙`;
+            document.getElementById('spinBtn').disabled = false;
             document.getElementById('active-case-view').style.display = 'block';
             
             const track = document.getElementById('track');
@@ -838,116 +907,110 @@
             document.getElementById('active-case-view').style.display = 'none';
         }
 
-        function generateTrack(c, targetWinVal = null) {
+        function generateTrack(c, winningVal = null) {
             const track = document.getElementById('track');
             track.innerHTML = '';
+            
+            // Генерируем ленту из 40 элементов, где победный элемент жестко ставится на позицию №28
             for (let i = 0; i < 40; i++) {
-                  let dropVal;
-                  if (i === 28 && targetWinVal !== null) {
-                      dropVal = targetWinVal;
-                  } else {
-                      dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
+                let dropVal;
+                if (i === 28 && winningVal !== null) {
+                    dropVal = winningVal;
+                } else {
+                    dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
                 }
 
                 const card = document.createElement('div');
                 card.className = 'drop-card';
                 card.innerHTML = `<span style="font-size:18px;">${c.icon}</span><span>${dropVal} 🪙</span>`;
                 track.appendChild(card);
-          }
-      }
+            }
+        }
 
         function spinCurrentCase() {
-            if (selectedCaseIndex === null) return;
+            if (isSpinning || selectedCaseIndex === null) return;
             const c = cases[selectedCaseIndex];
 
             if (balance < c.price) {
-                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-                showWinModal("❌", "Недостаточно монет!", 0, "ОШИБКА");
+                alert("Недостаточно монет на балансе! Продайте предметы или пополните баланс.");
                 return;
-          }
+            }
 
-          balance -= c.price;
-          updateBalanceUI();
-          saveData();
-          
-          const spinBtn = document.getElementById('spinBtn');
-          spinBtn.disabled = true;
+            // Списываем стоимость кейса
+            balance -= c.price;
+            updateBalanceUI();
+            saveData();
 
-          if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
 
-          const winCoins = c.drops[Math.floor(Math.random() * c.drops.length)];
-          generateTrack(c, winCoins);
-
-          const track = document.getElementById('track');
-          track.style.transition = 'none';
-          track.style.transform = 'translateX(0px)';
-
-          const cardWidth = 93;
-          const containerWidth = document.getElementById('rouletteContainer').offsetWidth;
-          const targetPos = (28 * cardWidth) - (containerWidth / 2) + (cardWidth / 2);
-
-          setTimeout(() => {
-              track.style.transition = 'transform 3s cubic-bezier(0.1, 1, 0.1, 1)';
-              track.style.transform = `translateX(-${targetPos}px)`;
-          }, 50);
-
-          setTimeout(() => {
-              spinBtn.disabled = false;
-              balance += winCoins;
-              updateBalanceUI();
-
-              inventory.push({ icon: c.icon, name: c.item, win: winCoins });
-              renderInventory();
-              renderUpgraderInventory();
-              saveData();
-
-              if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            // Выбираем случайный выигрыш из доступных в кейсе
+            const winningVal = c.drops[Math.floor(Math.random() * c.drops.length)];
             
-              showWinModal(c.icon, c.item, winCoins, "ВЫИГРЫШ! 🎉");
-          }, 3200);
-      }
+            // Перегенерируем дорожку так, чтобы на 28-й позиции стоял точный выигрыш
+            generateTrack(c, winningVal);
 
-        function showWinModal(icon, name, coins, title = "ПОБЕДА! 🎉") {
-            document.getElementById('winTitleHeader').innerText = title;
-            document.getElementById('winIcon').innerText = icon;
-            document.getElementById('winItemName').innerText = name;
-          
-          const coinsBox = document.getElementById('winCoinsText');
-          if (coins > 0) {
-              coinsBox.style.display = 'inline-block';
-              coinsBox.innerText = `+${coins.toLocaleString()} 🪙`;
-          } else {
-              coinsBox.style.display = 'none';
+            const track = document.getElementById('track');
+            
+            // Расчет смещения: карточка шириной 85px + 8px отступы (margin 4px слева/справа) = 93px
+            // Центрируем 28-ю карточку относительно контейнера рулетки (ширина контейнера ~320px)
+            const cardTotalWidth = 93;
+            const containerWidth = document.getElementById('rouletteContainer').clientWidth;
+            const targetPosition = (28 * cardTotalWidth) - (containerWidth / 2) + (cardTotalWidth / 2) + (Math.random() * 20 - 10);
+
+            track.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.15, 1)';
+            track.style.transform = `translateX(-${targetPosition}px)`;
+
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+
+                // Сохраняем выпавший предмет для отправки в инвентарь (а НЕ на баланс!)
+                pendingReward = {
+                    icon: c.icon,
+                    name: c.item,
+                    win: winningVal
+                };
+
+                showWinModal("🎉", c.item, winningVal, "ПОБЕДА!");
+            }, 3600);
         }
 
-          document.getElementById('winModal').style.display = 'flex';
-      }
+        // --- МОДАЛКА ВЫИГРЫША ---
+        function showWinModal(icon, titleName, coinsVal, headerText) {
+            document.getElementById('winTitleHeader').innerText = headerText;
+            document.getElementById('winIcon').innerText = icon;
+            document.getElementById('winItemName').innerText = titleName;
+            document.getElementById('winCoinsText.innerText', coinsVal > 0 ? `Ценность: +${coinsVal} 🪙` : "Ничего не получено");
+            
+            const coinsElem = document.getElementById('winCoinsText');
+            if (coinsVal > 0) {
+                coinsElem.style.display = 'inline-block';
+                coinsElem.innerText = `Номинал: ${coinsVal} 🪙`;
+            } else {
+                coinsElem.style.display = 'none';
+            }
+
+            document.getElementById('winModal').style.display = 'flex';
+        }
 
         function closeWinModal() {
-          document.getElementById('winModal').style.display = 'none';
-      }
+            document.getElementById('winModal').style.display = 'none';
 
-        function renderInventory() {
-            const list = document.getElementById('inventory-list');
-            if (!inventory || inventory.length === 0) {
-                list.innerHTML = '<div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пока пуст. Открывай кейсы!</div>';
-                return;
-          }
-            list.innerHTML = '';
-            inventory.slice().reverse().forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'inv-card';
-                card.innerHTML = `
-                    <div class="inv-icon">${item.icon}</div>
-                    <div style="font-weight:bold;">${item.name}</div>
-                    <div style="color:var(--text-gold); font-size:10px; margin-top:2px;">+${item.win} 🪙</div>
-                `;
-                list.appendChild(card);
-          });
-      }
+            // Если есть награда (выигрыш или успешный апгрейд) — добавляем её в инвентарь!
+            if (pendingReward) {
+                inventory.push(pendingReward);
+                pendingReward = null;
+                saveData();
+                renderInventory();
+                renderUpgraderInventory();
+            }
+        }
 
-        renderCases();
-        loadData();
+        // Запуск при загрузке
+        window.onload = loadData;
     </script>
 </body>
 </html>
