@@ -669,8 +669,9 @@
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) tg.expand();
 
-        let balance = 100;
+        let balance = 0;
         let inventory = [];
+        let usedPromoCodes = [];
         let selectedCaseIndex = null;
         let isSpinning = false;
 
@@ -678,6 +679,28 @@
         let currentUpgradeMode = 75; 
         let customChanceValue = 25;
         let isWheelSpinning = false;
+
+        // Список всех промокодов (10 штук на 100 монет и 5 штук на 50 монет)
+        const promoCodesDB = {
+            // 10 промокодов на 100 монет
+            "BRAIN100A": 100,
+            "BRAIN100B": 100,
+            "BRAIN100C": 100,
+            "BRAIN100D": 100,
+            "BRAIN100E": 100,
+            "SIGMA100X": 100,
+            "SIGMA100Y": 100,
+            "SIGMA100Z": 100,
+            "RIZZ100PRO": 100,
+            "EPIC100WIN": 100,
+
+            // 5 промокодов на 50 монет
+            "BRAIN50A": 50,
+            "BRAIN50B": 50,
+            "BRAIN50C": 50,
+            "OHIO50PASS": 50,
+            "CHAD50CODE": 50
+        };
 
         let audioCtx = null;
         function initAudio() {
@@ -748,10 +771,21 @@
         ];
 
         function loadData() {
+            // Механизм разового обнуления баланса у всех игроков
+            const globalResetVersion = "v1_global_reset_done";
+            if (!localStorage.getItem(globalResetVersion)) {
+                localStorage.setItem('brainup_balance', '0');
+                localStorage.setItem(globalResetVersion, 'true');
+            }
+
             const savedBal = localStorage.getItem('brainup_balance');
             const savedInv = localStorage.getItem('brainup_inventory');
+            const savedPromos = localStorage.getItem('brainup_used_promos');
+
             if (savedBal !== null) balance = parseInt(savedBal, 10);
             if (savedInv !== null) inventory = JSON.parse(savedInv);
+            if (savedPromos !== null) usedPromoCodes = JSON.parse(savedPromos);
+
             updateBalanceUI();
             renderCases();
             renderInventory();
@@ -761,6 +795,7 @@
         function saveData() {
             localStorage.setItem('brainup_balance', balance);
             localStorage.setItem('brainup_inventory', JSON.stringify(inventory));
+            localStorage.setItem('brainup_used_promos', JSON.stringify(usedPromoCodes));
         }
 
         function updateBalanceUI() {
@@ -910,7 +945,6 @@
             const mult = getMultiplierForChance(chance);
             chanceText.innerText = `Шанс успеха: ${chance}% (Множитель: x${mult})`;
 
-            // Обновляем визуальный градиент колеса (зеленый сектор равен проценту успеха)
             const wheel = document.getElementById('fortuneWheel');
             const greenAngle = (chance / 100) * 360;
             wheel.style.background = `conic-gradient(#10b981 0deg ${greenAngle}deg, #ef4444 ${greenAngle}deg 360deg)`;
@@ -953,18 +987,13 @@
             const isSuccess = Math.random() * 100 < chance;
             
             const pointer = document.getElementById('wheelPointer');
-            const baseRot = 1440; // Полные обороты для анимации
-            
-            // Зеленый сектор занимает от 0 до greenAngle градусов. 
-            // Стрелка (указатель) по умолчанию смотрит вверх (0 градусов / 360 градусов).
+            const baseRot = 1440;
             const greenAngle = (chance / 100) * 360;
             
             let targetRot = 0;
             if (isSuccess) {
-                // Случайный угол внутри зеленого сектора с небольшим отступом от границ (например, от 5% до 95% ширины сектора)
                 targetRot = Math.random() * (greenAngle - 10) + 5;
             } else {
-                // Случайный угол внутри красного сектора
                 targetRot = Math.random() * (360 - greenAngle - 10) + greenAngle + 5;
             }
             
@@ -1099,14 +1128,32 @@
         }
 
         function applyPromo() {
-            const code = document.getElementById('promoInput').value.trim().toUpperCase();
+            const codeInput = document.getElementById('promoInput');
+            const code = codeInput.value.trim().toUpperCase();
             const status = document.getElementById('promo-status');
-            if (code === 'BRAINUP' || code === 'START') {
-                balance += 50;
-                status.style.color = '#10b981';
-                status.innerText = 'Промокод активирован! +50 🪙';
-                updateBalanceUI();
+
+            if (!code) {
+                status.style.color = '#ef4444';
+                status.innerText = 'Введи промокод';
+                return;
+            }
+
+            if (usedPromoCodes.includes(code)) {
+                status.style.color = '#ef4444';
+                status.innerText = 'Этот промокод уже был активирован!';
+                return;
+            }
+
+            if (promoCodesDB.hasOwnProperty(code)) {
+                const reward = promoCodesDB[code];
+                balance += reward;
+                usedPromoCodes.push(code);
                 saveData();
+                updateBalanceUI();
+
+                status.style.color = '#10b981';
+                status.innerText = `Успешно! Получено +${reward} 🪙`;
+                codeInput.value = '';
             } else {
                 status.style.color = '#ef4444';
                 status.innerText = 'Неверный промокод';
@@ -1122,10 +1169,7 @@
             const stars = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
             if (stars <= 0) return;
 
-            // Защита от начисления баланса без реальной оплаты
             if (tg && typeof tg.openInvoice === 'function') {
-                // Если бот настроен на бэкенде для выставления invoice_link, здесь можно открывать счет.
-                // Пример интеграции с настоящими Stars через WebApp:
                 tg.openInvoice('https://t.me/$invoice_link_from_bot', (status) => {
                     if (status === 'paid') {
                         balance += stars * 2;
@@ -1137,8 +1181,6 @@
                     }
                 });
             } else {
-                // Если приложение запущено в обычном браузере, а не в клиенте Telegram, 
-                // симулируем платежный шлюз (или выводим уведомление)
                 const confirmPay = confirm(`Подтвердить оплату ${stars} Telegram Stars? (Тестовый режим в браузере)`);
                 if (confirmPay) {
                     balance += stars * 2;
