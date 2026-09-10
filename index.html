@@ -112,6 +112,7 @@
             color: white;
             font-weight: bold;
             text-transform: uppercase;
+            outline: none;
         }
 
         .promo-btn {
@@ -647,7 +648,7 @@
 
     <!-- ВКЛАДКА 4: ИНВЕНТАРЬ -->
     <div id="inventory-page" class="page">
-        <h4 style="margin-top:0; margin-bottom:15px;">Tвои выбитые предметы:</h4>
+        <h4 style="margin-top:0; margin-bottom:15px;">Твои выбитые предметы:</h4>
         <div class="inventory-grid" id="inventory-list">
             <div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пуст</div>
         </div>
@@ -668,7 +669,7 @@
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) tg.expand();
 
-        let balance = 0;
+        let balance = 100;
         let inventory = [];
         let selectedCaseIndex = null;
         let isSpinning = false;
@@ -873,6 +874,8 @@
             const list = document.getElementById('upgrader-inventory-list');
             if (!inventory || inventory.length === 0) {
                 list.innerHTML = '<div style="grid-column: span 3; color: #666; font-size: 13px;">Инвентарь пуст</div>';
+                selectedUpgradeItemIndex = null;
+                updateUpgradePreview();
                 return;
             }
             list.innerHTML = '';
@@ -881,15 +884,16 @@
                 const card = document.createElement('div');
                 card.className = `inv-card ${selectedUpgradeItemIndex === realIndex ? 'selected' : ''}`;
                 card.onclick = () => {
-                    if (isWheelSpinning) return;
                     selectedUpgradeItemIndex = realIndex;
                     renderUpgraderInventory();
                     updateUpgradePreview();
                 };
                 card.innerHTML = `
-                    <div class="inv-icon">${item.icon}</div>
-                    <div style="font-weight:bold;">${item.name}</div>
-                    <div style="color:var(--text-gold); font-size:10px; margin-top:2px;">${item.win} 🪙</div>
+                    <div>
+                        <div class="inv-icon">${item.icon}</div>
+                        <div style="font-weight:bold;">${item.name}</div>
+                        <div style="color:var(--text-gold); font-size:10px; margin-top:2px;">${item.win} 🪙</div>
+                    </div>
                 `;
                 list.appendChild(card);
             });
@@ -898,40 +902,35 @@
         function updateUpgradePreview() {
             const sourceSlot = document.getElementById('upgradeSourceSlot');
             const targetName = document.getElementById('targetUpName');
+            const targetIcon = document.getElementById('targetUpIcon');
             const chanceText = document.getElementById('upgradeChanceText');
             const upgradeBtn = document.getElementById('upgradeBtn');
-            const wheelWrapper = document.getElementById('wheelWrapper');
-            const wheel = document.getElementById('fortuneWheel');
+
+            const chance = getUpgradeChance();
+            const mult = getMultiplierForChance(chance);
+            chanceText.innerText = `Шанс успеха: ${chance}% (Множитель: x${mult})`;
 
             if (selectedUpgradeItemIndex !== null && inventory[selectedUpgradeItemIndex]) {
                 const item = inventory[selectedUpgradeItemIndex];
-                sourceSlot.className = 'upgrade-item-slot filled';
                 sourceSlot.innerHTML = `
-                    <span style="font-size:26px;">${item.icon}</span>
-                    <span style="font-size:10px; color:#fff; margin-top:4px; font-weight:bold;">${item.win} 🪙</span>
+                    <span style="font-size:24px;">${item.icon}</span>
+                    <span style="font-size:10px; color:white; margin-top:4px; font-weight:bold;">${item.name}</span>
+                    <span style="font-size:9px; color:var(--text-gold);">${item.win} 🪙</span>
                 `;
+                sourceSlot.classList.add('filled');
 
-                const chance = getUpgradeChance();
-                const mult = getMultiplierForChance(chance);
-                const targetValue = Math.round(item.win * mult);
-
-                targetName.innerText = `${targetValue} 🪙 (${mult}x)`;
-                chanceText.innerText = `Шанс успеха: ${chance}%`;
-
-                const deg = (chance / 100) * 360;
-                wheel.style.background = `conic-gradient(#10b981 0deg ${deg}deg, #ef4444 ${deg}deg 360deg)`;
-
-                wheelWrapper.style.display = 'block';
-                upgradeBtn.disabled = false;
+                const upgradedValue = Math.round(item.win * mult);
+                targetName.innerText = `${upgradedValue} 🪙`;
+                targetIcon.innerText = item.icon;
+                upgradeBtn.disabled = isWheelSpinning;
             } else {
-                sourceSlot.className = 'upgrade-item-slot';
                 sourceSlot.innerHTML = `
                     <span style="font-size:24px;">➕</span>
                     <span style="font-size:10px; color:#888; margin-top:4px;">Твой предмет</span>
                 `;
+                sourceSlot.classList.remove('filled');
                 targetName.innerText = 'Выигрыш';
-                chanceText.innerText = 'Шанс успеха: --';
-                wheelWrapper.style.display = 'none';
+                targetIcon.innerText = '🎁';
                 upgradeBtn.disabled = true;
             }
         }
@@ -943,118 +942,87 @@
 
             isWheelSpinning = true;
             document.getElementById('upgradeBtn').disabled = true;
+            document.getElementById('wheelWrapper').style.display = 'block';
 
-            const pointer = document.getElementById('wheelPointer');
             const chance = getUpgradeChance();
-
             const isSuccess = Math.random() * 100 < chance;
+            
+            const pointer = document.getElementById('wheelPointer');
+            const baseRot = 1440;
+            const targetRot = isSuccess ? (Math.random() * 160 + 10) : (Math.random() * 160 + 190);
+            const totalRot = baseRot + targetRot;
 
-            const extraRotations = 360 * (5 + Math.floor(Math.random() * 3));
-            let targetDegree = 0;
-
-            if (isSuccess) {
-                // Зеленая зона строго от 2 до (chance - 2) градусов
-                const maxGreen = Math.max(3, chance - 2);
-                targetDegree = Math.floor(Math.random() * (maxGreen - 2)) + 2;
-            } else {
-                // Красная зона строго от (chance + 3) до 357 градусов
-                const minRed = Math.min(356, chance + 3);
-                const maxRed = 357;
-                if (minRed < maxRed) {
-                    targetDegree = Math.floor(Math.random() * (maxRed - minRed)) + minRed;
-                } else {
-                    targetDegree = 355;
-                }
-            }
-
-            const totalRotation = extraRotations + targetDegree;
-
-            pointer.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            pointer.style.transform = `translate(-50%, 0%) rotate(${totalRotation}deg)`;
-
-            let ticks = 0;
-            const tickInterval = setInterval(() => {
-                playSound('tick');
-                ticks++;
-                if (ticks > 30) clearInterval(tickInterval);
-            }, 110);
+            pointer.style.transform = `translate(-50%, 0%) rotate(${totalRot}deg)`;
+            playSound('tick');
 
             setTimeout(() => {
                 isWheelSpinning = false;
+                document.getElementById('wheelWrapper').style.display = 'none';
                 pointer.style.transition = 'none';
-                pointer.style.transform = `translate(-50%, 0%) rotate(${targetDegree}deg)`;
+                pointer.style.transform = 'translate(-50%, 0%) rotate(0deg)';
+                setTimeout(() => { pointer.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)'; }, 50);
+
+                const mult = getMultiplierForChance(chance);
+                const upgradedValue = Math.round(item.win * mult);
 
                 if (isSuccess) {
                     playSound('win');
-                    const mult = getMultiplierForChance(chance);
-                    const rewardValue = Math.round(item.win * mult);
-                    const reward = {
-                        name: `Upgrade (${mult}x)`,
-                        icon: '💎',
-                        win: rewardValue
+                    inventory[selectedUpgradeItemIndex] = {
+                        name: item.name + " (Upgraded)",
+                        icon: item.icon,
+                        win: upgradedValue
                     };
-                    inventory.splice(selectedUpgradeItemIndex, 1);
-                    inventory.push(reward);
-                    selectedUpgradeItemIndex = null;
-                    saveData();
-                    renderInventory();
-                    renderUpgraderInventory();
-                    updateUpgradePreview();
-
-                    showWinModal(reward.icon, reward.name, reward.win, "УСПЕШНЫЙ АПГРЕЙД! ⚡", true);
+                    showWinModal("АПГРЕЙД УСПЕШЕН!", item.icon, inventory[selectedUpgradeItemIndex].name, `+${upgradedValue} 🪙`);
                 } else {
                     playSound('lose');
                     inventory.splice(selectedUpgradeItemIndex, 1);
-                    selectedUpgradeItemIndex = null;
-                    saveData();
-                    renderInventory();
-                    renderUpgraderInventory();
-                    updateUpgradePreview();
-
-                    showWinModal('😢', 'Предмет сгорел', item.win, "АПГРЕЙД НЕ УДАЛСЯ", false);
+                    showWinModal("АПГРЕЙД ПРОВАЛЕН", "💀", "Предмет сгорел", "0 🪙");
                 }
+
+                selectedUpgradeItemIndex = null;
+                saveData();
+                updateBalanceUI();
+                renderInventory();
+                renderUpgraderInventory();
+                updateUpgradePreview();
             }, 4000);
         }
 
-        function openCaseView(index) {
-            selectedCaseIndex = index;
-            const c = cases[index];
+        function openCaseView(idx) {
+            selectedCaseIndex = idx;
+            const c = cases[idx];
             document.getElementById('current-case-name').innerText = c.name;
             document.getElementById('active-case-view').style.display = 'block';
-            document.getElementById('cases-list').style.display = 'none';
-            setupRouletteTrack(c);
+            buildTrack(c);
         }
 
         function closeCaseView() {
             document.getElementById('active-case-view').style.display = 'none';
-            document.getElementById('cases-list').style.display = 'grid';
             selectedCaseIndex = null;
         }
 
-        function setupRouletteTrack(c) {
+        function buildTrack(c) {
             const track = document.getElementById('track');
             track.innerHTML = '';
-            track.style.transition = 'none';
-            track.style.transform = 'translateX(0px)';
-
             for (let i = 0; i < 40; i++) {
-                const dropVal = c.drops[Math.floor(Math.random() * c.drops.length)];
+                const randomDrop = c.drops[Math.floor(Math.random() * c.drops.length)];
                 const card = document.createElement('div');
                 card.className = 'drop-card';
                 card.innerHTML = `
-                    <div style="font-size:28px;">${c.icon}</div>
-                    <div style="margin-top:4px;">${dropVal} 🪙</div>
+                    <div style="font-size:30px;">${c.icon}</div>
+                    <div style="color:var(--text-gold); margin-top:4px;">${randomDrop} 🪙</div>
                 `;
                 track.appendChild(card);
             }
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
         }
 
         function spinCurrentCase() {
             if (isSpinning || selectedCaseIndex === null) return;
             const c = cases[selectedCaseIndex];
-
             if (balance < c.price) {
-                showWinModal('⚠️', 'Ошибка', 0, 'НЕДОСТАТОЧНО МОНЕТ', false);
+                alert('Недостаточно монет!');
                 return;
             }
 
@@ -1066,69 +1034,45 @@
             document.getElementById('spinBtn').disabled = true;
 
             const track = document.getElementById('track');
-            const winningIndex = 30;
-
-            let dropVal;
-            const isProfit = Math.random() < 0.22;
-            if (isProfit) {
-                dropVal = c.drops[c.drops.length - 1];
-            } else {
-                const losingDrops = c.drops.slice(0, c.drops.length - 1);
-                dropVal = losingDrops[Math.floor(Math.random() * losingDrops.length)];
-            }
+            const winningDrop = c.drops[Math.floor(Math.random() * c.drops.length)];
             
+            const winningIndex = 28;
             const cards = track.children;
             if (cards[winningIndex]) {
                 cards[winningIndex].innerHTML = `
-                    <div style="font-size:28px;">${c.icon}</div>
-                    <div style="margin-top:4px; color:${dropVal >= c.price ? 'var(--text-gold)' : '#fff'};">${dropVal} 🪙</div>
+                    <div style="font-size:30px;">${c.icon}</div>
+                    <div style="color:var(--text-gold); margin-top:4px;">${winningDrop} 🪙</div>
                 `;
             }
 
             const cardWidth = 93;
-            const containerWidth = document.getElementById('rouletteContainer').clientWidth;
-            const offset = (winningIndex * cardWidth) - (containerWidth / 2) + (cardWidth / 2);
+            const offset = -(winningIndex * cardWidth) + (document.getElementById('rouletteContainer').offsetWidth / 2) - (cardWidth / 2);
 
             track.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            track.style.transform = `translateX(-${offset}px)`;
+            track.style.transform = `translateX(${offset}px)`;
 
-            let tickCount = 0;
-            const tickInterval = setInterval(() => {
-                playSound('tick');
-                tickCount++;
-                if (tickCount > 25) clearInterval(tickInterval);
-            }, 120);
+            let tickInterval = setInterval(() => { playSound('tick'); }, 120);
 
             setTimeout(() => {
+                clearInterval(tickInterval);
                 isSpinning = false;
                 document.getElementById('spinBtn').disabled = false;
-                playSound('win');
 
-                const reward = { name: c.item, icon: c.icon, win: dropVal };
-                inventory.push(reward);
+                playSound('win');
+                inventory.push({ name: c.item, icon: c.icon, win: winningDrop });
                 saveData();
                 renderInventory();
                 renderUpgraderInventory();
 
-                showWinModal(c.icon, c.item, dropVal, "ПОБЕДА! 🎉", true);
-            }, 4000);
+                showWinModal("ПОБЕДА! 🎉", c.icon, c.item, `+${winningDrop} 🪙`);
+            }, 4100);
         }
 
-        function showWinModal(icon, name, coins, titleText, isSuccess) {
-            document.getElementById('winTitleHeader').innerText = titleText;
+        function showWinModal(title, icon, name, coins) {
+            document.getElementById('winTitleHeader').innerText = title;
             document.getElementById('winIcon').innerText = icon;
             document.getElementById('winItemName').innerText = name;
-            document.getElementById('winCoinsText').innerText = coins > 0 ? `+${coins} 🪙` : 'Минус предмет';
-            
-            const btn = document.getElementById('winModalBtn');
-            if (isSuccess) {
-                btn.innerText = "ЗАБРАТЬ В ИНВЕНТАРЬ";
-                btn.style.background = "linear-gradient(90deg, #10b981, #059669)";
-            } else {
-                btn.innerText = "ПОНЯТНО";
-                btn.style.background = "linear-gradient(90deg, #ef4444, #dc2626)";
-            }
-
+            document.getElementById('winCoinsText').innerText = coins;
             document.getElementById('winModal').style.display = 'flex';
         }
 
@@ -1139,10 +1083,10 @@
         function applyPromo() {
             const code = document.getElementById('promoInput').value.trim().toUpperCase();
             const status = document.getElementById('promo-status');
-            if (code === 'BRAIN' || code === 'START') {
+            if (code === 'BRAINUP' || code === 'START') {
                 balance += 50;
                 status.style.color = '#10b981';
-                status.innerText = '+50 🪙 получено!';
+                status.innerText = 'Промокод активирован! +50 🪙';
                 updateBalanceUI();
                 saveData();
             } else {
@@ -1157,15 +1101,15 @@
         }
 
         function buyCustomStars() {
-            const stars = parseInt(document.getElementById('customStarsInput').value, 10);
-            if (!stars || stars <= 0) return;
+            const stars = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
+            if (stars <= 0) return;
             balance += stars * 2;
             updateBalanceUI();
             saveData();
-            showWinModal('⭐', 'Покупка звезд', stars * 2, 'УСПЕШНО!', true);
+            alert(`Успешно куплено за ${stars} Telegram Stars!`);
         }
 
-        window.onload = loadData;
+        loadData();
     </script>
 </body>
 </html>
