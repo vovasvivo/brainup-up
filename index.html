@@ -910,6 +910,11 @@
             const mult = getMultiplierForChance(chance);
             chanceText.innerText = `Шанс успеха: ${chance}% (Множитель: x${mult})`;
 
+            // Обновляем визуальный градиент колеса (зеленый сектор равен проценту успеха)
+            const wheel = document.getElementById('fortuneWheel');
+            const greenAngle = (chance / 100) * 360;
+            wheel.style.background = `conic-gradient(#10b981 0deg ${greenAngle}deg, #ef4444 ${greenAngle}deg 360deg)`;
+
             if (selectedUpgradeItemIndex !== null && inventory[selectedUpgradeItemIndex]) {
                 const item = inventory[selectedUpgradeItemIndex];
                 sourceSlot.innerHTML = `
@@ -948,8 +953,21 @@
             const isSuccess = Math.random() * 100 < chance;
             
             const pointer = document.getElementById('wheelPointer');
-            const baseRot = 1440;
-            const targetRot = isSuccess ? (Math.random() * 160 + 10) : (Math.random() * 160 + 190);
+            const baseRot = 1440; // Полные обороты для анимации
+            
+            // Зеленый сектор занимает от 0 до greenAngle градусов. 
+            // Стрелка (указатель) по умолчанию смотрит вверх (0 градусов / 360 градусов).
+            const greenAngle = (chance / 100) * 360;
+            
+            let targetRot = 0;
+            if (isSuccess) {
+                // Случайный угол внутри зеленого сектора с небольшим отступом от границ (например, от 5% до 95% ширины сектора)
+                targetRot = Math.random() * (greenAngle - 10) + 5;
+            } else {
+                // Случайный угол внутри красного сектора
+                targetRot = Math.random() * (360 - greenAngle - 10) + greenAngle + 5;
+            }
+            
             const totalRot = baseRot + targetRot;
 
             pointer.style.transform = `translate(-50%, 0%) rotate(${totalRot}deg)`;
@@ -1103,10 +1121,32 @@
         function buyCustomStars() {
             const stars = parseInt(document.getElementById('customStarsInput').value, 10) || 0;
             if (stars <= 0) return;
-            balance += stars * 2;
-            updateBalanceUI();
-            saveData();
-            alert(`Успешно куплено за ${stars} Telegram Stars!`);
+
+            // Защита от начисления баланса без реальной оплаты
+            if (tg && typeof tg.openInvoice === 'function') {
+                // Если бот настроен на бэкенде для выставления invoice_link, здесь можно открывать счет.
+                // Пример интеграции с настоящими Stars через WebApp:
+                tg.openInvoice('https://t.me/$invoice_link_from_bot', (status) => {
+                    if (status === 'paid') {
+                        balance += stars * 2;
+                        updateBalanceUI();
+                        saveData();
+                        alert(`Успешно оплачено! Зачислено ${stars * 2} 🪙`);
+                    } else {
+                        alert('Оплата была отменена.');
+                    }
+                });
+            } else {
+                // Если приложение запущено в обычном браузере, а не в клиенте Telegram, 
+                // симулируем платежный шлюз (или выводим уведомление)
+                const confirmPay = confirm(`Подтвердить оплату ${stars} Telegram Stars? (Тестовый режим в браузере)`);
+                if (confirmPay) {
+                    balance += stars * 2;
+                    updateBalanceUI();
+                    saveData();
+                    alert(`Успешно куплено за ${stars} Telegram Stars!`);
+                }
+            }
         }
 
         loadData();
