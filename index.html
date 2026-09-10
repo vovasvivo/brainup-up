@@ -672,6 +672,7 @@
         let balance = 0;
         let inventory = [];
         let usedPromoCodes = [];
+        let promoActivations = {}; // Хранит количество использований для лимитных промокодов
         let selectedCaseIndex = null;
         let isSpinning = false;
 
@@ -680,26 +681,29 @@
         let customChanceValue = 25;
         let isWheelSpinning = false;
 
-        // Список всех промокодов (10 штук на 100 монет и 5 штук на 50 монет)
+        // База промокодов (обычные и с лимитом активаций)
         const promoCodesDB = {
-            // 10 промокодов на 100 монет
-            "BRAIN100A": 100,
-            "BRAIN100B": 100,
-            "BRAIN100C": 100,
-            "BRAIN100D": 100,
-            "BRAIN100E": 100,
-            "SIGMA100X": 100,
-            "SIGMA100Y": 100,
-            "SIGMA100Z": 100,
-            "RIZZ100PRO": 100,
-            "EPIC100WIN": 100,
+            // Промокод на 1 000 000 монет, ровно на 4 использования
+            "MILLIONWIN": { reward: 1000000, maxUses: 4 },
+
+            // 10 промокодов на 100 монет (безлимитные личные)
+            "BRAIN100A": { reward: 100 },
+            "BRAIN100B": { reward: 100 },
+            "BRAIN100C": { reward: 100 },
+            "BRAIN100D": { reward: 100 },
+            "BRAIN100E": { reward: 100 },
+            "SIGMA100X": { reward: 100 },
+            "SIGMA100Y": { reward: 100 },
+            "SIGMA100Z": { reward: 100 },
+            "RIZZ100PRO": { reward: 100 },
+            "EPIC100WIN": { reward: 100 },
 
             // 5 промокодов на 50 монет
-            "BRAIN50A": 50,
-            "BRAIN50B": 50,
-            "BRAIN50C": 50,
-            "OHIO50PASS": 50,
-            "CHAD50CODE": 50
+            "BRAIN50A": { reward: 50 },
+            "BRAIN50B": { reward: 50 },
+            "BRAIN50C": { reward: 50 },
+            "OHIO50PASS": { reward: 50 },
+            "CHAD50CODE": { reward: 50 }
         };
 
         let audioCtx = null;
@@ -781,10 +785,12 @@
             const savedBal = localStorage.getItem('brainup_balance');
             const savedInv = localStorage.getItem('brainup_inventory');
             const savedPromos = localStorage.getItem('brainup_used_promos');
+            const savedActivations = localStorage.getItem('brainup_promo_activations');
 
             if (savedBal !== null) balance = parseInt(savedBal, 10);
             if (savedInv !== null) inventory = JSON.parse(savedInv);
             if (savedPromos !== null) usedPromoCodes = JSON.parse(savedPromos);
+            if (savedActivations !== null) promoActivations = JSON.parse(savedActivations);
 
             updateBalanceUI();
             renderCases();
@@ -796,6 +802,7 @@
             localStorage.setItem('brainup_balance', balance);
             localStorage.setItem('brainup_inventory', JSON.stringify(inventory));
             localStorage.setItem('brainup_used_promos', JSON.stringify(usedPromoCodes));
+            localStorage.setItem('brainup_promo_activations', JSON.stringify(promoActivations));
         }
 
         function updateBalanceUI() {
@@ -1138,26 +1145,40 @@
                 return;
             }
 
-            if (usedPromoCodes.includes(code)) {
+            if (!promoCodesDB.hasOwnProperty(code)) {
                 status.style.color = '#ef4444';
-                status.innerText = 'Этот промокод уже был активирован!';
+                status.innerText = 'Неверный промокод';
                 return;
             }
 
-            if (promoCodesDB.hasOwnProperty(code)) {
-                const reward = promoCodesDB[code];
-                balance += reward;
-                usedPromoCodes.push(code);
-                saveData();
-                updateBalanceUI();
+            const promoData = promoCodesDB[code];
 
-                status.style.color = '#10b981';
-                status.innerText = `Успешно! Получено +${reward} 🪙`;
-                codeInput.value = '';
+            // Проверка для промокодов с общим лимитом использований (например, на 4 раза)
+            if (promoData.maxUses) {
+                const currentUses = promoActivations[code] || 0;
+                if (currentUses >= promoData.maxUses) {
+                    status.style.color = '#ef4444';
+                    status.innerText = 'Лимит активаций этого промокода исчерпан!';
+                    return;
+                }
+                promoActivations[code] = currentUses + 1;
             } else {
-                status.style.color = '#ef4444';
-                status.innerText = 'Неверный промокод';
+                // Проверка для персональных личных промокодов (1 раз на пользователя)
+                if (usedPromoCodes.includes(code)) {
+                    status.style.color = '#ef4444';
+                    status.innerText = 'Этот промокод уже был активирован!';
+                    return;
+                }
+                usedPromoCodes.push(code);
             }
+
+            balance += promoData.reward;
+            saveData();
+            updateBalanceUI();
+
+            status.style.color = '#10b981';
+            status.innerText = `Успешно! Получено +${promoData.reward.toLocaleString()} 🪙`;
+            codeInput.value = '';
         }
 
         function calculateCustomCoins() {
